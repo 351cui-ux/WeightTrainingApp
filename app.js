@@ -373,7 +373,7 @@ class TrainTrackApp {
         const now = new Date();
         const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
         const dateStr = now.toLocaleDateString('ja-JP', options);
-        document.getElementById('currentDate').innerHTML = `${dateStr} <span style="margin-left: 8px; font-size: 0.75rem; opacity: 0.7; font-weight: normal;">v1.12</span>`;
+        document.getElementById('currentDate').innerHTML = `${dateStr} <span style="margin-left: 8px; font-size: 0.75rem; opacity: 0.7; font-weight: normal;">v1.13</span>`;
     }
 
     switchView(view) {
