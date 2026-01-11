@@ -192,6 +192,10 @@ class TrainTrackApp {
 
         document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === view));
 
+        // Hide FAB in non-record views
+        const fab = document.getElementById('globalAddBtn');
+        if (fab) fab.classList.toggle('hidden', view !== 'record');
+
         if (view === 'analytics') this.renderAnalytics();
         if (view === 'settings') this.renderSettingsList();
         if (view === 'record') this.refreshContent();
