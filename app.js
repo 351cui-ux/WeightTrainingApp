@@ -373,7 +373,7 @@ class TrainTrackApp {
         const now = new Date();
         const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
         const dateStr = now.toLocaleDateString('ja-JP', options);
-        document.getElementById('currentDate').innerHTML = `${dateStr} <span style="margin-left: 8px; font-size: 0.75rem; opacity: 0.7; font-weight: normal;">v1.13</span>`;
+        document.getElementById('currentDate').innerHTML = `${dateStr} <span style="margin-left: 8px; font-size: 0.75rem; opacity: 0.7; font-weight: normal;">v1.14</span>`;
     }
 
     switchView(view) {
@@ -478,25 +478,18 @@ class TrainTrackApp {
         // Robust check for walking
         const isWalking = exercise.category === 'walking' || exercise.name === 'ウォーキング' || exercise.name === 'Walking';
 
+        // Find stats container for this exercise card
+        const card = document.querySelector(`.exercise-card[onclick*="${exerciseId}"]`);
+        if (!card) return;
+        const statsRow = card.querySelector('.exercise-stats');
+
         if (isWalking) {
             const lastTime = latestWorkout.sets[0].reps;
             document.getElementById(`last-${exerciseId}`).textContent = `${lastTime}分`;
 
-            let maxTime = 0;
-            workouts.forEach(w => {
-                if (w.sets[0].reps > maxTime) maxTime = w.sets[0].reps;
-            });
-            document.getElementById(`max-${exerciseId}`).textContent = `${maxTime}分`;
-
-            // Adjust label for walking
-            const labels = document.querySelectorAll(`#exerciseList .exercise-card`);
-            labels.forEach(card => {
-                const name = card.querySelector('.exercise-name').textContent;
-                if (name === exercise.name) {
-                    const statLabels = card.querySelectorAll('.stat-label');
-                    if (statLabels[1]) statLabels[1].textContent = '最長';
-                }
-            });
+            // Hide the second stat for walking
+            const stats = statsRow.querySelectorAll('.stat');
+            if (stats[1]) stats[1].style.display = 'none';
         } else {
             // Get the latest workout's weight
             let lastWeight = null;
@@ -511,18 +504,12 @@ class TrainTrackApp {
                 document.getElementById(`last-${exerciseId}`).textContent = `${lastWeight}kg`;
             }
 
-            // Max weight
-            let maxWeight = 0;
-            workouts.forEach(workout => {
-                workout.sets.forEach(set => {
-                    if (set && set.weight > maxWeight) {
-                        maxWeight = set.weight;
-                    }
-                });
-            });
-
-            if (maxWeight > 0) {
-                document.getElementById(`max-${exerciseId}`).textContent = `${maxWeight}kg`;
+            // Final Reps (Reps of the very last set of the latest workout)
+            const lastSet = latestWorkout.sets[latestWorkout.sets.length - 1];
+            if (lastSet && lastSet.reps) {
+                document.getElementById(`max-${exerciseId}`).textContent = `${lastSet.reps}回`;
+                const labels = statsRow.querySelectorAll('.stat-label');
+                if (labels[1]) labels[1].textContent = '最終回数';
             }
         }
     }
@@ -956,19 +943,17 @@ class TrainTrackApp {
                 data1.push(workout.sets[0].reps);
             } else {
                 let maxW = 0;
-                let totalW = 0;
-                let count = 0;
+                let lastReps = 0;
 
                 workout.sets.forEach(set => {
                     if (set && set.weight !== undefined) {
                         if (set.weight > maxW) maxW = set.weight;
-                        totalW += set.weight;
-                        count++;
+                        lastReps = set.reps; // Keep overwriting to get the last one
                     }
                 });
 
                 data1.push(maxW);
-                data2.push(count > 0 ? parseFloat((totalW / count).toFixed(1)) : 0);
+                data2.push(lastReps);
             }
         });
 
@@ -987,7 +972,7 @@ class TrainTrackApp {
 
         if (!isWalking) {
             datasets.push({
-                label: '平均重量',
+                label: '最終回数',
                 data: data2,
                 borderColor: '#a855f7',
                 backgroundColor: 'transparent',
