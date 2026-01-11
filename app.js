@@ -273,14 +273,19 @@ class TrainTrackApp {
     }
 
     async init() {
+        console.log('App: Initializing...');
         try {
             await this.db.init();
+            console.log('App: Database initialized');
             this.setupEventListeners();
+            console.log('App: Event listeners setup');
             this.updateCurrentDate();
             this.renderExerciseList();
             this.renderSettingsExercises();
+            console.log('App: Initial render triggered');
         } catch (error) {
-            console.error('Initialization error:', error);
+            console.error('App: Initialization error:', error);
+            alert('アプリの初期化中にエラーが発生しました。リロードしてください。');
         }
     }
 
@@ -373,7 +378,7 @@ class TrainTrackApp {
         const now = new Date();
         const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
         const dateStr = now.toLocaleDateString('ja-JP', options);
-        document.getElementById('currentDate').innerHTML = `${dateStr} <span style="margin-left: 8px; font-size: 0.75rem; opacity: 0.7; font-weight: normal;">v1.14</span>`;
+        document.getElementById('currentDate').innerHTML = `${dateStr} <span style="margin-left: 8px; font-size: 0.75rem; opacity: 0.7; font-weight: normal;">v1.15</span>`;
     }
 
     switchView(view) {
@@ -442,7 +447,7 @@ class TrainTrackApp {
         if (fab) fab.style.display = 'flex'; // Show FAB when exercises exist
 
         const html = exercises.map(exercise => `
-            <div class="exercise-card" onclick="app.openSetModal(null, ${exercise.id})">
+            <div class="exercise-card" data-exercise-id="${exercise.id}" onclick="app.openSetModal(null, ${exercise.id})">
                 <div class="exercise-header">
                     <div class="exercise-name">${exercise.name}</div>
                 </div>
@@ -478,10 +483,11 @@ class TrainTrackApp {
         // Robust check for walking
         const isWalking = exercise.category === 'walking' || exercise.name === 'ウォーキング' || exercise.name === 'Walking';
 
-        // Find stats container for this exercise card
-        const card = document.querySelector(`.exercise-card[onclick*="${exerciseId}"]`);
+        // Find stats container for this exercise card using data attribute
+        const card = document.querySelector(`.exercise-card[data-exercise-id="${exerciseId}"]`);
         if (!card) return;
         const statsRow = card.querySelector('.exercise-stats');
+        if (!statsRow) return;
 
         if (isWalking) {
             const lastTime = latestWorkout.sets[0].reps;
