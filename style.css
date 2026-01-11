@@ -170,7 +170,7 @@ body {
     background: var(--accent-gradient);
     border-color: transparent;
     color: white;
-    transform: translateY(-2px);
+    transform: none;
     box-shadow: var(--shadow-lg);
 }
 
@@ -422,6 +422,27 @@ body {
     color: var(--text-primary);
 }
 
+/* Reorder Buttons */
+.reorder-btns {
+    display: flex;
+    gap: 4px;
+    margin-right: 8px;
+}
+
+.reorder-btns .icon-btn-small {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary);
+}
+
+.reorder-btns .icon-btn-small[disabled] {
+    opacity: 0.3;
+    cursor: default;
+}
+
 /* Analytics */
 .analytics-header {
     margin-bottom: var(--spacing-xl);
@@ -519,6 +540,12 @@ body {
 .settings-section h2 {
     font-size: 1.25rem;
     margin-bottom: var(--spacing-lg);
+}
+
+.settings-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
 }
 
 .category-tabs {
@@ -698,14 +725,11 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: var(--bg-primary);
+    /* Fixed style like other screens */
     display: none;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
     z-index: 1000;
-    padding: var(--spacing-lg);
 }
 
 .modal.active {
@@ -714,20 +738,16 @@ body {
 }
 
 .modal-content {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-xl);
+    background: var(--bg-primary);
     width: 100%;
-    max-width: 400px;
-    max-height: 90vh;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
-    box-shadow: var(--shadow-lg);
-    animation: slideUp var(--transition-base);
 }
 
 .modal-content-large {
-    max-width: 500px;
-    max-height: 85vh;
+    max-width: none;
 }
 
 @keyframes slideUp {

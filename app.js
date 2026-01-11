@@ -2,7 +2,7 @@
 class DatabaseManager {
     constructor() {
         this.dbName = 'TrainTrackDB';
-        this.dbVersion = 2;
+        this.dbVersion = 4;
         this.db = null;
     }
 
@@ -18,12 +18,36 @@ class DatabaseManager {
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
+                const oldVersion = event.oldVersion;
 
                 // Exercises store
+                let exerciseStore;
                 if (!db.objectStoreNames.contains('exercises')) {
-                    const exerciseStore = db.createObjectStore('exercises', { keyPath: 'id', autoIncrement: true });
+                    exerciseStore = db.createObjectStore('exercises', { keyPath: 'id', autoIncrement: true });
                     exerciseStore.createIndex('category', 'category', { unique: false });
                     exerciseStore.createIndex('name', 'name', { unique: false });
+                    exerciseStore.createIndex('order', 'order', { unique: false });
+                } else {
+                    exerciseStore = event.target.transaction.objectStore('exercises');
+                    if (!exerciseStore.indexNames.contains('order')) {
+                        exerciseStore.createIndex('order', 'order', { unique: false });
+                    }
+                }
+
+                // Initial data migration for order if upgrading to v3 or v4
+                if (oldVersion < 4) {
+                    const transaction = event.target.transaction;
+                    const store = transaction.objectStore('exercises');
+                    const request = store.getAll();
+                    request.onsuccess = () => {
+                        const exercises = request.result;
+                        exercises.forEach((ex, index) => {
+                            if (ex.order === undefined) {
+                                ex.order = index;
+                                store.put(ex);
+                            }
+                        });
+                    };
                 }
 
                 // Workout sessions store
@@ -42,25 +66,52 @@ class DatabaseManager {
     }
 
     async addExercise(name, category) {
-        const transaction = this.db.transaction(['exercises'], 'readwrite');
-        const store = transaction.objectStore('exercises');
-        return store.add({ name, category, createdAt: new Date().toISOString() });
+        const all = await this.getExercises();
+        const maxOrder = all.length > 0 ? Math.max(...all.map(e => e.order || 0)) : -1;
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['exercises'], 'readwrite');
+            const store = transaction.objectStore('exercises');
+            const request = store.add({
+                name,
+                category,
+                order: maxOrder + 1,
+                createdAt: new Date().toISOString()
+            });
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
     }
 
-    async updateExercise(id, name, category) {
-        const transaction = this.db.transaction(['exercises'], 'readwrite');
-        const store = transaction.objectStore('exercises');
-        const exercise = await this.getExerciseById(id);
-        exercise.name = name;
-        exercise.category = category;
-        return store.put(exercise);
+    async updateExercise(id, name, category, order = null) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['exercises'], 'readwrite');
+            const store = transaction.objectStore('exercises');
+            const getRequest = store.get(Number(id));
+
+            getRequest.onsuccess = () => {
+                const exercise = getRequest.result;
+                if (!exercise) {
+                    resolve(null);
+                    return;
+                }
+                exercise.name = name;
+                exercise.category = category;
+                if (order !== null) exercise.order = order;
+
+                const putRequest = store.put(exercise);
+                putRequest.onsuccess = () => resolve(putRequest.result);
+                putRequest.onerror = () => reject(putRequest.error);
+            };
+            getRequest.onerror = () => reject(getRequest.error);
+        });
     }
 
     async getExerciseById(id) {
         const transaction = this.db.transaction(['exercises'], 'readonly');
         const store = transaction.objectStore('exercises');
         return new Promise((resolve, reject) => {
-            const request = store.get(id);
+            const request = store.get(Number(id));
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
@@ -70,38 +121,54 @@ class DatabaseManager {
         const transaction = this.db.transaction(['exercises'], 'readonly');
         const store = transaction.objectStore('exercises');
 
+        let exercises;
         if (category) {
             const index = store.index('category');
-            return this.getAllFromIndex(index, category);
+            exercises = await this.getAllFromIndex(index, category);
+        } else {
+            exercises = await this.getAllFromStore(store);
         }
 
-        return this.getAllFromStore(store);
+        // Always sort by order
+        return exercises.sort((a, b) => (a.order || 0) - (b.order || 0));
     }
 
     async deleteExercise(id) {
-        const transaction = this.db.transaction(['exercises'], 'readwrite');
-        const store = transaction.objectStore('exercises');
-        return store.delete(id);
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['exercises'], 'readwrite');
+            const store = transaction.objectStore('exercises');
+            const request = store.delete(Number(id));
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
     }
 
     async addWorkout(exerciseId, sets, date) {
-        const transaction = this.db.transaction(['workouts'], 'readwrite');
-        const store = transaction.objectStore('workouts');
-        return store.add({
-            exerciseId,
-            sets: sets, // Array of {weight, reps}
-            date: date || new Date().toISOString()
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['workouts'], 'readwrite');
+            const store = transaction.objectStore('workouts');
+            const request = store.add({
+                exerciseId: Number(exerciseId),
+                sets: sets, // Array of {weight, reps}
+                date: date || new Date().toISOString()
+            });
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
         });
     }
 
     async updateWorkout(id, exerciseId, sets, date) {
-        const transaction = this.db.transaction(['workouts'], 'readwrite');
-        const store = transaction.objectStore('workouts');
-        return store.put({
-            id,
-            exerciseId,
-            sets: sets,
-            date: date
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['workouts'], 'readwrite');
+            const store = transaction.objectStore('workouts');
+            const request = store.put({
+                id: Number(id),
+                exerciseId: Number(exerciseId),
+                sets: sets,
+                date: date
+            });
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
         });
     }
 
@@ -116,9 +183,13 @@ class DatabaseManager {
     }
 
     async deleteWorkout(id) {
-        const transaction = this.db.transaction(['workouts'], 'readwrite');
-        const store = transaction.objectStore('workouts');
-        return store.delete(id);
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['workouts'], 'readwrite');
+            const store = transaction.objectStore('workouts');
+            const request = store.delete(Number(id));
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
     }
 
     async getWorkouts(exerciseId = null) {
@@ -150,9 +221,15 @@ class DatabaseManager {
     }
 
     async clearAllData() {
-        const transaction = this.db.transaction(['exercises', 'workouts'], 'readwrite');
-        await transaction.objectStore('exercises').clear();
-        await transaction.objectStore('workouts').clear();
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['exercises', 'workouts'], 'readwrite');
+            const exStore = transaction.objectStore('exercises');
+            const wkStore = transaction.objectStore('workouts');
+            exStore.clear();
+            wkStore.clear();
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+        });
     }
 }
 
@@ -296,7 +373,7 @@ class TrainTrackApp {
         const now = new Date();
         const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
         const dateStr = now.toLocaleDateString('ja-JP', options);
-        document.getElementById('currentDate').textContent = dateStr;
+        document.getElementById('currentDate').innerHTML = `${dateStr} <span style="margin-left: 8px; font-size: 0.75rem; opacity: 0.7; font-weight: normal;">v1.12</span>`;
     }
 
     switchView(view) {
@@ -355,27 +432,17 @@ class TrainTrackApp {
             if (fab) fab.style.display = 'none'; // Hide FAB when empty
             container.innerHTML = `
                 <div class="empty-state">
-                    <button class="empty-icon-btn" id="emptyAddExerciseBtn">
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
-                        </svg>
-                    </button>
-                    <h3>種目を追加しましょう</h3>
-                    <p>アイコンまたは設定タブから種目を登録して、トレーニングを開始できます</p>
+                    <h3>種目がありません</h3>
+                    <p>設定タブから種目を登録して、トレーニングを開始しましょう</p>
                 </div>
             `;
-
-            // Add listener to the empty state button
-            document.getElementById('emptyAddExerciseBtn').addEventListener('click', () => {
-                this.openExerciseModal();
-            });
             return;
         }
 
         if (fab) fab.style.display = 'flex'; // Show FAB when exercises exist
 
         const html = exercises.map(exercise => `
-            <div class="exercise-card">
+            <div class="exercise-card" onclick="app.openSetModal(null, ${exercise.id})">
                 <div class="exercise-header">
                     <div class="exercise-name">${exercise.name}</div>
                 </div>
@@ -484,10 +551,14 @@ class TrainTrackApp {
             return;
         }
 
-        const html = exercises.map(exercise => `
+        const html = exercises.map((exercise, index) => `
             <div class="exercise-item">
                 <div class="exercise-item-name">${exercise.name}</div>
                 <div class="exercise-item-actions">
+                    <div class="reorder-btns">
+                        <button class="icon-btn-small" onclick="app.moveExercise(${exercise.id}, -1)" ${index === 0 ? 'disabled' : ''}>↑</button>
+                        <button class="icon-btn-small" onclick="app.moveExercise(${exercise.id}, 1)" ${index === exercises.length - 1 ? 'disabled' : ''}>↓</button>
+                    </div>
                     <button class="icon-btn" onclick="app.editExerciseItem(${exercise.id})" title="編集">✏️</button>
                     <button class="icon-btn" onclick="app.deleteExerciseItem(${exercise.id})" title="削除">🗑️</button>
                 </div>
@@ -495,6 +566,29 @@ class TrainTrackApp {
         `).join('');
 
         container.innerHTML = html;
+    }
+
+    async moveExercise(id, direction) {
+        const exercises = await this.db.getExercises(this.state.currentSettingsCategory);
+        const index = exercises.findIndex(e => e.id === id);
+        if (index === -1) return;
+
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= exercises.length) return;
+
+        const currentEx = exercises[index];
+        const targetEx = exercises[targetIndex];
+
+        // Swap order
+        const tempOrder = currentEx.order;
+        currentEx.order = targetEx.order;
+        targetEx.order = tempOrder;
+
+        await this.db.updateExercise(currentEx.id, currentEx.name, currentEx.category, currentEx.order);
+        await this.db.updateExercise(targetEx.id, targetEx.name, targetEx.category, targetEx.order);
+
+        this.renderSettingsExercises();
+        this.renderExerciseList();
     }
 
     async editExerciseItem(id) {
@@ -569,6 +663,8 @@ class TrainTrackApp {
         const walkingArea = document.getElementById('walkingInputArea');
         const setsArea = document.getElementById('setsInputArea');
 
+        document.body.style.overflow = 'hidden'; // Prevent background scroll
+
         // Set today's date
         dateInput.value = new Date().toISOString().split('T')[0];
 
@@ -579,9 +675,10 @@ class TrainTrackApp {
         }
         document.getElementById('walkingTime').value = '';
 
-        const allExercises = await this.db.getExercises();
+        // Filter exercises by current category
+        const exercises = await this.db.getExercises(this.state.currentCategory);
         select.innerHTML = '<option value="">種目を選択</option>' +
-            allExercises.map(e => `<option value="${e.id}" data-category="${e.category}">${e.name}</option>`).join('');
+            exercises.map(e => `<option value="${e.id}" data-category="${e.category}">${e.name}</option>`).join('');
 
         const updateUI = () => {
             const opt = select.options[select.selectedIndex];
@@ -607,7 +704,7 @@ class TrainTrackApp {
         if (workoutId) {
             this.state.setEditingWorkout(workoutId);
             const workoutData = await this.db.getWorkoutById(workoutId);
-            const exerciseData = allExercises.find(e => e.id === workoutData.exerciseId);
+            const exerciseData = exercises.find(e => e.id === Number(workoutData.exerciseId));
 
             document.getElementById('setModalTitle').textContent = 'トレーニングを編集';
             dateInput.value = new Date(workoutData.date).toISOString().split('T')[0];
@@ -630,8 +727,8 @@ class TrainTrackApp {
 
             if (preSelectedExerciseId) {
                 select.value = preSelectedExerciseId;
-                // If preSearch is walking, disable select
-                const preEx = allExercises.find(e => e.id === preSelectedExerciseId);
+                // If pre-selected is walking, disable select
+                const preEx = exercises.find(e => e.id === Number(preSelectedExerciseId));
                 if (preEx && preEx.category === 'walking') {
                     select.disabled = true;
                 }
@@ -646,6 +743,7 @@ class TrainTrackApp {
         const modal = document.getElementById('setModal');
         modal.classList.remove('active');
         this.state.setEditingWorkout(null);
+        document.body.style.overflow = ''; // Fix scroll bug
     }
 
     async saveWorkout() {
@@ -959,7 +1057,7 @@ class TrainTrackApp {
         toast.textContent = message;
         toast.style.cssText = `
             position: fixed;
-            top: 100px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(16, 185, 129, 0.9);
@@ -975,6 +1073,106 @@ class TrainTrackApp {
             toast.style.animation = 'slideUp 0.3s ease-out';
             setTimeout(() => toast.remove(), 300);
         }, 2000);
+    }
+
+    async exportData() {
+        const exercises = await this.db.getExercises();
+        const workouts = await this.db.getWorkouts();
+
+        // Export exercises as CSV
+        let csvContent = "type,id,name,category,order\n";
+        exercises.forEach(ex => {
+            const safeName = (ex.name || '').replace(/"/g, '""');
+            csvContent += `exercise,${ex.id},"${safeName}",${ex.category},${ex.order || 0}\n`;
+        });
+
+        // Export workouts as CSV
+        csvContent += "\ntype,id,exerciseId,date,sets\n";
+        workouts.forEach(w => {
+            const setsStr = JSON.stringify(w.sets).replace(/"/g, '""');
+            csvContent += `workout,${w.id},${w.exerciseId},${w.date},"${setsStr}"\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `traintrack_data_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        this.showToast('📤 データをエクスポートしました');
+    }
+
+    async importData(file) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const content = e.target.result;
+            const lines = content.split('\n');
+            let importedExCount = 0;
+            let importedWkCount = 0;
+
+            // Map to track old ID to new ID for exercise mapping
+            const exerciseIdMap = new Map();
+
+            // Simple CSV parser
+            for (let line of lines) {
+                if (!line.trim() || line.startsWith('type')) continue;
+
+                // Handle quoted strings for exercise names and sets JSON
+                const parts = [];
+                let current = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        if (inQuotes && line[i + 1] === '"') {
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        parts.push(current);
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                parts.push(current);
+
+                const type = parts[0];
+                if (type === 'exercise') {
+                    const [, oldId, name, category, order] = parts;
+                    // Recreate as new to avoid conflict, but track mapping
+                    const newId = await this.db.addExercise(name, category);
+                    if (order !== undefined) {
+                        await this.db.updateExercise(newId, name, category, Number(order));
+                    }
+                    exerciseIdMap.set(oldId, newId);
+                    importedExCount++;
+                } else if (type === 'workout') {
+                    const [, , oldExId, date, setsStr] = parts;
+                    const newExId = exerciseIdMap.get(oldExId);
+
+                    if (newExId && setsStr) {
+                        try {
+                            const sets = JSON.parse(setsStr);
+                            await this.db.addWorkout(newExId, sets, date);
+                            importedWkCount++;
+                        } catch (err) {
+                            console.error('Error parsing workout sets:', err);
+                        }
+                    }
+                }
+            }
+
+            this.showToast(`📥 種目:${importedExCount}件, 記録:${importedWkCount}件をインポートしました`);
+            this.renderSettingsExercises();
+            this.renderExerciseList();
+        };
+        reader.readAsText(file);
     }
 }
 
