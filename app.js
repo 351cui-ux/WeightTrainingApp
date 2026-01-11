@@ -276,20 +276,40 @@ class TrainTrackApp {
         console.log('App: Initializing...');
         try {
             await this.db.init();
-            console.log('App: Database initialized');
+            console.log('App: Database initialized successfully');
+        } catch (error) {
+            console.error('App: Database Initialization error:', error);
+            alert('【致命的エラー】データベースの読み込みに失敗しました。');
+            return;
+        }
+
+        try {
             this.setupEventListeners();
-            console.log('App: Event listeners setup');
+            console.log('App: Event listeners setup complete');
+        } catch (error) {
+            console.error('App: Event Listener Setup error:', error);
+        }
+
+        try {
             this.updateCurrentDate();
             this.renderExerciseList();
             this.renderSettingsExercises();
-            console.log('App: Initial render triggered');
+            console.log('App: Initial rendering triggered');
         } catch (error) {
-            console.error('App: Initialization error:', error);
-            alert('アプリの初期化中にエラーが発生しました。リロードしてください。');
+            console.error('App: Initial Rendering error:', error);
         }
     }
 
     setupEventListeners() {
+        const safeBind = (id, event, callback) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener(event, callback);
+            } else {
+                console.warn(`App: Element with ID "${id}" not found. Skipping binding.`);
+            }
+        };
+
         // Navigation
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
@@ -321,7 +341,7 @@ class TrainTrackApp {
         });
 
         // FAB - Add Workout
-        document.getElementById('addSetBtn').addEventListener('click', async () => {
+        safeBind('addSetBtn', 'click', async () => {
             if (this.state.currentCategory === 'walking') {
                 const exercises = await this.db.getExercises('walking');
                 const walkingEx = exercises.find(e => e.category === 'walking');
@@ -336,49 +356,43 @@ class TrainTrackApp {
         });
 
         // Add Exercise Button
-        document.getElementById('addExerciseBtn').addEventListener('click', () => {
+        safeBind('addExerciseBtn', 'click', () => {
             this.openExerciseModal();
         });
 
         // Exercise Modal
-        document.getElementById('closeExerciseModal').addEventListener('click', () => {
+        safeBind('closeExerciseModal', 'click', () => {
             this.closeExerciseModal();
         });
-        document.getElementById('cancelExerciseBtn').addEventListener('click', () => {
+        safeBind('cancelExerciseBtn', 'click', () => {
             this.closeExerciseModal();
         });
-        document.getElementById('saveExerciseBtn').addEventListener('click', () => {
+        safeBind('saveExerciseBtn', 'click', () => {
             this.saveExercise();
         });
 
         // Set Modal
-        document.getElementById('closeSetModal').addEventListener('click', () => {
+        safeBind('closeSetModal', 'click', () => {
             this.closeSetModal();
         });
-        document.getElementById('cancelSetBtn').addEventListener('click', () => {
+        safeBind('cancelSetBtn', 'click', () => {
             this.closeSetModal();
         });
-        document.getElementById('saveSetBtn').addEventListener('click', () => {
+        safeBind('saveSetBtn', 'click', () => {
             this.saveWorkout();
         });
 
-        // Data management listeners removed
-
-
         // Initial Empty State button (if exists)
-        const emptyBtn = document.getElementById('emptyAddExerciseBtn');
-        if (emptyBtn) {
-            emptyBtn.addEventListener('click', () => {
-                this.openExerciseModal();
-            });
-        }
+        safeBind('emptyAddExerciseBtn', 'click', () => {
+            this.openExerciseModal();
+        });
     }
 
     updateCurrentDate() {
         const now = new Date();
         const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
         const dateStr = now.toLocaleDateString('ja-JP', options);
-        document.getElementById('currentDate').innerHTML = `${dateStr} <span style="margin-left: 8px; font-size: 0.75rem; opacity: 0.7; font-weight: normal;">v1.15</span>`;
+        document.getElementById('currentDate').innerHTML = `${dateStr} <span style="margin-left: 8px; font-size: 0.75rem; opacity: 0.7; font-weight: normal;">v1.16</span>`;
     }
 
     switchView(view) {
@@ -471,52 +485,62 @@ class TrainTrackApp {
     }
 
     async loadExerciseStats(exerciseId) {
-        const workouts = await this.db.getWorkouts(exerciseId);
-        const exercise = await this.db.getExerciseById(exerciseId);
+        try {
+            const workouts = await this.db.getWorkouts(exerciseId);
+            const exercise = await this.db.getExerciseById(exerciseId);
 
-        if (workouts.length === 0 || !exercise) return;
+            if (!workouts || workouts.length === 0 || !exercise) return;
 
-        // Sort by date session
-        workouts.sort((a, b) => new Date(b.date) - new Date(a.date));
-        const latestWorkout = workouts[0];
+            // Sort by date session
+            workouts.sort((a, b) => new Date(b.date) - new Date(a.date));
+            const latestWorkout = workouts[0];
+            if (!latestWorkout || !latestWorkout.sets) return;
 
-        // Robust check for walking
-        const isWalking = exercise.category === 'walking' || exercise.name === 'ウォーキング' || exercise.name === 'Walking';
+            // Robust check for walking
+            const isWalking = exercise.category === 'walking' || exercise.name === 'ウォーキング' || exercise.name === 'Walking';
 
-        // Find stats container for this exercise card using data attribute
-        const card = document.querySelector(`.exercise-card[data-exercise-id="${exerciseId}"]`);
-        if (!card) return;
-        const statsRow = card.querySelector('.exercise-stats');
-        if (!statsRow) return;
+            // Find stats container for this exercise card using data attribute
+            const card = document.querySelector(`.exercise-card[data-exercise-id="${exerciseId}"]`);
+            if (!card) return;
+            const statsRow = card.querySelector('.exercise-stats');
+            if (!statsRow) return;
 
-        if (isWalking) {
-            const lastTime = latestWorkout.sets[0].reps;
-            document.getElementById(`last-${exerciseId}`).textContent = `${lastTime}分`;
+            if (isWalking) {
+                if (latestWorkout.sets[0]) {
+                    const lastTime = latestWorkout.sets[0].reps;
+                    const el = document.getElementById(`last-${exerciseId}`);
+                    if (el) el.textContent = `${lastTime}分`;
+                }
 
-            // Hide the second stat for walking
-            const stats = statsRow.querySelectorAll('.stat');
-            if (stats[1]) stats[1].style.display = 'none';
-        } else {
-            // Get the latest workout's weight
-            let lastWeight = null;
-            for (let i = latestWorkout.sets.length - 1; i >= 0; i--) {
-                if (latestWorkout.sets[i] && latestWorkout.sets[i].weight) {
-                    lastWeight = latestWorkout.sets[i].weight;
-                    break;
+                // Hide the second stat for walking
+                const stats = statsRow.querySelectorAll('.stat');
+                if (stats[1]) stats[1].style.display = 'none';
+            } else {
+                // Get the latest workout's weight
+                let lastWeight = null;
+                for (let i = latestWorkout.sets.length - 1; i >= 0; i--) {
+                    if (latestWorkout.sets[i] && latestWorkout.sets[i].weight) {
+                        lastWeight = latestWorkout.sets[i].weight;
+                        break;
+                    }
+                }
+
+                if (lastWeight) {
+                    const el = document.getElementById(`last-${exerciseId}`);
+                    if (el) el.textContent = `${lastWeight}kg`;
+                }
+
+                // Final Reps (Reps of the very last set of the latest workout)
+                const lastSet = latestWorkout.sets[latestWorkout.sets.length - 1];
+                if (lastSet && lastSet.reps) {
+                    const el = document.getElementById(`max-${exerciseId}`);
+                    if (el) el.textContent = `${lastSet.reps}回`;
+                    const labels = statsRow.querySelectorAll('.stat-label');
+                    if (labels[1]) labels[1].textContent = '最終回数';
                 }
             }
-
-            if (lastWeight) {
-                document.getElementById(`last-${exerciseId}`).textContent = `${lastWeight}kg`;
-            }
-
-            // Final Reps (Reps of the very last set of the latest workout)
-            const lastSet = latestWorkout.sets[latestWorkout.sets.length - 1];
-            if (lastSet && lastSet.reps) {
-                document.getElementById(`max-${exerciseId}`).textContent = `${lastSet.reps}回`;
-                const labels = statsRow.querySelectorAll('.stat-label');
-                if (labels[1]) labels[1].textContent = '最終回数';
-            }
+        } catch (error) {
+            console.error(`App: Error loading stats for exercise ${exerciseId}:`, error);
         }
     }
 
