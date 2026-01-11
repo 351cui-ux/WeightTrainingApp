@@ -219,22 +219,38 @@ class TrainTrackApp {
         // Category selector
         document.querySelectorAll('.category-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const category = e.currentTarget.dataset.category;
-                this.selectCategory(category);
+                const btnEl = e.target.closest('.category-btn');
+                if (btnEl) {
+                    const category = btnEl.dataset.category;
+                    this.selectCategory(category);
+                }
             });
         });
 
         // Settings category tabs
         document.querySelectorAll('.category-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
-                const category = e.currentTarget.dataset.category;
-                this.selectSettingsCategory(category);
+                const tabEl = e.target.closest('.category-tab');
+                if (tabEl) {
+                    const category = tabEl.dataset.category;
+                    this.selectSettingsCategory(category);
+                }
             });
         });
 
         // FAB - Add Workout
-        document.getElementById('addSetBtn').addEventListener('click', () => {
-            this.openSetModal();
+        document.getElementById('addSetBtn').addEventListener('click', async () => {
+            if (this.state.currentCategory === 'walking') {
+                const exercises = await this.db.getExercises('walking');
+                const walkingEx = exercises.find(e => e.category === 'walking');
+                if (walkingEx) {
+                    this.openSetModal(null, walkingEx.id);
+                } else {
+                    this.openSetModal();
+                }
+            } else {
+                this.openSetModal();
+            }
         });
 
         // Add Exercise Button
@@ -264,18 +280,8 @@ class TrainTrackApp {
             this.saveWorkout();
         });
 
-        // Data management
-        document.getElementById('exportDataBtn').addEventListener('click', () => {
-            this.exportData();
-        });
-        document.getElementById('clearDataBtn').addEventListener('click', () => {
-            this.clearData();
-        });
+        // Data management listeners removed
 
-        // History filter
-        document.getElementById('historyFilter').addEventListener('change', () => {
-            this.renderHistory();
-        });
 
         // Initial Empty State button (if exists)
         const emptyBtn = document.getElementById('emptyAddExerciseBtn');
@@ -318,30 +324,32 @@ class TrainTrackApp {
         }
     }
 
-    selectCategory(category) {
+    async selectCategory(category) {
         this.state.setCategory(category);
 
+        // Update tabs UI
         document.querySelectorAll('.category-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.category === category);
         });
 
-        this.renderExerciseList();
-    }
+        // Check if walking exercise exists (optional: keep auto-create or rely on empty state)
+        // User wants "like PPL", so maybe rely on empty state/add like PPL?
+        // "The previous logic had auto-create".
+        // If I remove auto-modal, I should probably also stick to standard rendering.
 
-    selectSettingsCategory(category) {
-        this.state.setSettingsCategory(category);
-
-        document.querySelectorAll('.category-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.category === category);
-        });
-
-        this.renderSettingsExercises();
+        // However, to keep it smooth, I'll ensure "Walking" exercise exists silently if not present?
+        // Or just render list. If empty, user sees standard empty state for walking.
+        // Let's keep it simple and consistent.
+        await this.renderExerciseList();
+        await this.renderCategoryHistory();
     }
 
     async renderExerciseList() {
         const container = document.getElementById('exerciseList');
-        const exercises = await this.db.getExercises(this.state.currentCategory);
+        const currentCat = this.state.currentCategory;
+        const exercises = await this.db.getExercises(currentCat);
         const fab = document.getElementById('addSetBtn');
+
 
         if (exercises.length === 0) {
             if (fab) fab.style.display = 'none'; // Hide FAB when empty
@@ -392,41 +400,75 @@ class TrainTrackApp {
 
     async loadExerciseStats(exerciseId) {
         const workouts = await this.db.getWorkouts(exerciseId);
+        const exercise = await this.db.getExerciseById(exerciseId);
 
-        if (workouts.length === 0) return;
+        if (workouts.length === 0 || !exercise) return;
 
-        // Sort by date
+        // Sort by date session
         workouts.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        // Get the latest workout's weight (4th set -> 3rd set -> 2nd set -> 1st set)
         const latestWorkout = workouts[0];
-        let lastWeight = null;
 
-        // Priority: 4th set, then 3rd, then 2nd, then 1st
-        for (let i = latestWorkout.sets.length - 1; i >= 0; i--) {
-            if (latestWorkout.sets[i] && latestWorkout.sets[i].weight) {
-                lastWeight = latestWorkout.sets[i].weight;
-                break;
-            }
-        }
+        // Robust check for walking
+        const isWalking = exercise.category === 'walking' || exercise.name === 'ウォーキング' || exercise.name === 'Walking';
 
-        if (lastWeight) {
-            document.getElementById(`last-${exerciseId}`).textContent = `${lastWeight}kg`;
-        }
+        if (isWalking) {
+            const lastTime = latestWorkout.sets[0].reps;
+            document.getElementById(`last-${exerciseId}`).textContent = `${lastTime}分`;
 
-        // Max weight across all workouts and all sets
-        let maxWeight = 0;
-        workouts.forEach(workout => {
-            workout.sets.forEach(set => {
-                if (set && set.weight > maxWeight) {
-                    maxWeight = set.weight;
+            let maxTime = 0;
+            workouts.forEach(w => {
+                if (w.sets[0].reps > maxTime) maxTime = w.sets[0].reps;
+            });
+            document.getElementById(`max-${exerciseId}`).textContent = `${maxTime}分`;
+
+            // Adjust label for walking
+            const labels = document.querySelectorAll(`#exerciseList .exercise-card`);
+            labels.forEach(card => {
+                const name = card.querySelector('.exercise-name').textContent;
+                if (name === exercise.name) {
+                    const statLabels = card.querySelectorAll('.stat-label');
+                    if (statLabels[1]) statLabels[1].textContent = '最長';
                 }
             });
+        } else {
+            // Get the latest workout's weight
+            let lastWeight = null;
+            for (let i = latestWorkout.sets.length - 1; i >= 0; i--) {
+                if (latestWorkout.sets[i] && latestWorkout.sets[i].weight) {
+                    lastWeight = latestWorkout.sets[i].weight;
+                    break;
+                }
+            }
+
+            if (lastWeight) {
+                document.getElementById(`last-${exerciseId}`).textContent = `${lastWeight}kg`;
+            }
+
+            // Max weight
+            let maxWeight = 0;
+            workouts.forEach(workout => {
+                workout.sets.forEach(set => {
+                    if (set && set.weight > maxWeight) {
+                        maxWeight = set.weight;
+                    }
+                });
+            });
+
+            if (maxWeight > 0) {
+                document.getElementById(`max-${exerciseId}`).textContent = `${maxWeight}kg`;
+            }
+        }
+    }
+
+    async selectSettingsCategory(category) {
+        this.state.setSettingsCategory(category);
+
+        // Update tabs UI
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.category === category);
         });
 
-        if (maxWeight > 0) {
-            document.getElementById(`max-${exerciseId}`).textContent = `${maxWeight}kg`;
-        }
+        this.renderSettingsExercises();
     }
 
     async renderSettingsExercises() {
@@ -520,69 +562,83 @@ class TrainTrackApp {
         this.renderExerciseList();
     }
 
-    async openSetModal(workoutId = null) {
+    async openSetModal(workoutId = null, preSelectedExerciseId = null) {
         const modal = document.getElementById('setModal');
         const select = document.getElementById('setExercise');
         const dateInput = document.getElementById('workoutDate');
+        const walkingArea = document.getElementById('walkingInputArea');
+        const setsArea = document.getElementById('setsInputArea');
 
-        // Set today's date by default
-        const today = new Date().toISOString().split('T')[0];
-        dateInput.value = today;
+        // Set today's date
+        dateInput.value = new Date().toISOString().split('T')[0];
+
+        // Reset inputs
+        for (let i = 1; i <= 4; i++) {
+            document.getElementById(`setWeight${i}`).value = '';
+            document.getElementById(`setReps${i}`).value = '';
+        }
+        document.getElementById('walkingTime').value = '';
+
+        const allExercises = await this.db.getExercises();
+        select.innerHTML = '<option value="">種目を選択</option>' +
+            allExercises.map(e => `<option value="${e.id}" data-category="${e.category}">${e.name}</option>`).join('');
+
+        const updateUI = () => {
+            const opt = select.options[select.selectedIndex];
+            const cat = opt ? opt.dataset.category : '';
+            if (cat === 'walking') {
+                walkingArea.style.display = 'block';
+                setsArea.style.display = 'none';
+
+                // Disable selection if it's the only logic
+                // If we pre-selected walking, maybe disable it to show "fixed" state
+                // But only if we are in "Walking mode" logic implicitly
+                // For now, if category is walking, we can choose to disable or not.
+                // User said "unnatural to choose". So disabling is good or hiding.
+                // Let's disable it if it was preSelected as walking.
+            } else {
+                walkingArea.style.display = 'none';
+                setsArea.style.display = 'block';
+            }
+        };
+        select.onchange = updateUI;
+        select.disabled = false; // Reset disabled state
 
         if (workoutId) {
-            // Edit mode
             this.state.setEditingWorkout(workoutId);
-            const workout = await this.db.getWorkoutById(workoutId);
-            const exercise = await this.db.getExerciseById(workout.exerciseId);
+            const workoutData = await this.db.getWorkoutById(workoutId);
+            const exerciseData = allExercises.find(e => e.id === workoutData.exerciseId);
 
             document.getElementById('setModalTitle').textContent = 'トレーニングを編集';
+            dateInput.value = new Date(workoutData.date).toISOString().split('T')[0];
+            select.value = workoutData.exerciseId;
 
-            // Set date
-            const workoutDate = new Date(workout.date).toISOString().split('T')[0];
-            dateInput.value = workoutDate;
-
-            // Populate exercise select with all exercises
-            const allExercises = await this.db.getExercises();
-            select.innerHTML = allExercises.map(e =>
-                `<option value="${e.id}" ${e.id === workout.exerciseId ? 'selected' : ''}>${e.name}</option>`
-            ).join('');
-
-            // Fill in set data
-            for (let i = 0; i < 4; i++) {
-                const setNum = i + 1;
-                const set = workout.sets[i];
-                if (set) {
-                    document.getElementById(`setWeight${setNum}`).value = set.weight;
-                    document.getElementById(`setReps${setNum}`).value = set.reps;
-                } else {
-                    document.getElementById(`setWeight${setNum}`).value = '';
-                    document.getElementById(`setReps${setNum}`).value = '';
-                }
+            if (exerciseData && exerciseData.category === 'walking') {
+                document.getElementById('walkingTime').value = workoutData.sets[0].reps;
+                select.disabled = true; // Lock exercise for walking record
+            } else {
+                workoutData.sets.forEach((set, index) => {
+                    if (index < 4) {
+                        document.getElementById(`setWeight${index + 1}`).value = set.weight;
+                        document.getElementById(`setReps${index + 1}`).value = set.reps;
+                    }
+                });
             }
         } else {
-            // Add mode
-            this.state.setEditingWorkout(null);
             document.getElementById('setModalTitle').textContent = 'トレーニングを記録';
+            this.state.setEditingWorkout(null);
 
-            // Populate exercise select
-            const exercises = await this.db.getExercises(this.state.currentCategory);
-
-            if (exercises.length === 0) {
-                alert('先に種目を追加してください');
-                this.switchView('settings');
-                return;
-            }
-
-            select.innerHTML = '<option value="">種目を選択</option>' +
-                exercises.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-
-            // Clear all inputs
-            for (let i = 1; i <= 4; i++) {
-                document.getElementById(`setWeight${i}`).value = '';
-                document.getElementById(`setReps${i}`).value = '';
+            if (preSelectedExerciseId) {
+                select.value = preSelectedExerciseId;
+                // If preSearch is walking, disable select
+                const preEx = allExercises.find(e => e.id === preSelectedExerciseId);
+                if (preEx && preEx.category === 'walking') {
+                    select.disabled = true;
+                }
             }
         }
 
+        updateUI();
         modal.classList.add('active');
     }
 
@@ -595,95 +651,96 @@ class TrainTrackApp {
     async saveWorkout() {
         const exerciseId = parseInt(document.getElementById('setExercise').value);
         const dateInput = document.getElementById('workoutDate').value;
+        const walkingArea = document.getElementById('walkingInputArea');
 
-        if (!exerciseId) {
-            alert('種目を選択してください');
+        if (!exerciseId || !dateInput) {
+            alert('種目と日付を選択してください');
             return;
         }
 
-        if (!dateInput) {
-            alert('日付を選択してください');
-            return;
-        }
-
-        // Convert date to ISO string
         const selectedDate = new Date(dateInput + 'T12:00:00').toISOString();
-
-        // Collect all sets
         const sets = [];
-        for (let i = 1; i <= 4; i++) {
-            const weight = document.getElementById(`setWeight${i}`).value;
-            const reps = document.getElementById(`setReps${i}`).value;
 
-            if (weight && reps) {
-                sets.push({
-                    weight: parseFloat(weight),
-                    reps: parseInt(reps)
-                });
+        if (walkingArea.style.display === 'block') {
+            const time = parseFloat(document.getElementById('walkingTime').value);
+            if (isNaN(time) || time <= 0) {
+                alert('ウォーキング時間を入力してください');
+                return;
+            }
+            sets.push({ weight: 0, reps: time });
+        } else {
+            for (let i = 1; i <= 4; i++) {
+                const weight = parseFloat(document.getElementById(`setWeight${i}`).value);
+                const reps = parseInt(document.getElementById(`setReps${i}`).value);
+                if (!isNaN(weight) && !isNaN(reps)) {
+                    sets.push({ weight, reps });
+                }
+            }
+            if (sets.length === 0) {
+                alert('少なくとも1セット入力してください');
+                return;
             }
         }
 
-        if (sets.length === 0) {
-            alert('少なくとも1セット分のデータを入力してください');
-            return;
-        }
-
         if (this.state.editingWorkoutId) {
-            // Update existing workout
             await this.db.updateWorkout(this.state.editingWorkoutId, exerciseId, sets, selectedDate);
             this.showToast('✅ 記録を更新しました');
         } else {
-            // Add new workout
             await this.db.addWorkout(exerciseId, sets, selectedDate);
-            this.showToast(`✅ ${sets.length}セット記録しました！`);
+            this.showToast('✅ 記録を保存しました');
         }
 
         this.closeSetModal();
+        this.closeSetModal();
+        this.renderCategoryHistory(); // Update local history
         this.renderExerciseList();
-
-        // If currently on history view, refresh it
-        if (this.state.currentView === 'history') {
-            this.renderHistory();
-        }
     }
 
-    async renderHistory() {
-        const container = document.getElementById('historyList');
-        const filter = document.getElementById('historyFilter').value;
+    async renderCategoryHistory() {
+        const container = document.getElementById('categoryHistoryList');
+        if (!container) return; // Should exist in record view now
 
+        const category = this.state.currentCategory;
         const allWorkouts = await this.db.getWorkouts();
         const allExercises = await this.db.getExercises();
 
         if (allWorkouts.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">📊</div>
-                    <h3>記録がありません</h3>
-                    <p>トレーニングを記録すると、ここに履歴が表示されます</p>
-                </div>
-            `;
+            container.innerHTML = '<div class="empty-state"><p>まだ記録がありません</p></div>';
+            return;
+        }
+
+        // Filter valid workouts for current category
+        const filteredWorkouts = [];
+        allWorkouts.forEach(workout => {
+            const exercise = allExercises.find(e => e.id === workout.exerciseId);
+            if (!exercise) return;
+            if (exercise.category === category) {
+                filteredWorkouts.push({ ...workout, exerciseName: exercise.name, exerciseCategory: exercise.category });
+            }
+        });
+
+        if (filteredWorkouts.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>このカテゴリの記録はまだありません</p></div>';
             return;
         }
 
         // Group by date
         const grouped = {};
-        allWorkouts.forEach(workout => {
-            const exercise = allExercises.find(e => e.id === workout.exerciseId);
-            if (!exercise) return;
-
-            if (filter !== 'all' && exercise.category !== filter) return;
-
+        filteredWorkouts.forEach(workout => {
             const date = new Date(workout.date).toLocaleDateString('ja-JP');
             if (!grouped[date]) grouped[date] = [];
-
-            grouped[date].push({ ...workout, exerciseName: exercise.name, exerciseCategory: exercise.category });
+            grouped[date].push(workout);
         });
 
         const dates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
 
+        // Limit to recent 5 days for compactness logic if desired, or show all
+        // User asked for "History in Record column", implies relevant history. 
+        // Showing all might be long, but let's show all for now or maybe limit?
+        // Let's show all but in a scrollable container in CSS if needed.
+
         const html = dates.map(date => {
             const workouts = grouped[date];
-
             return `
                 <div class="history-item">
                     <div class="history-date">${date}</div>
@@ -697,9 +754,12 @@ class TrainTrackApp {
                                 </div>
                             </div>
                             <div class="history-sets">
-                                ${workout.sets.map((set, i) => `
-                                    <div class="set-badge">${i + 1}セット: ${set.weight}kg × ${set.reps}回</div>
-                                `).join('')}
+                                ${workout.exerciseCategory === 'walking'
+                    ? `<div class="set-badge">🚶 ${workout.sets[0].reps}分間</div>`
+                    : workout.sets.map((set, i) => `
+                                        <div class="set-badge">${i + 1}セット: ${set.weight}kg × ${set.reps}回</div>
+                                    `).join('')
+                }
                             </div>
                         </div>
                     `).join('')}
@@ -707,7 +767,7 @@ class TrainTrackApp {
             `;
         }).join('');
 
-        container.innerHTML = html || '<div class="empty-state"><p>該当する記録がありません</p></div>';
+        container.innerHTML = html;
     }
 
     async editWorkout(id) {
@@ -720,134 +780,131 @@ class TrainTrackApp {
         }
 
         await this.db.deleteWorkout(id);
-        this.renderHistory();
+        this.renderCategoryHistory(); // Re-render category history
         this.renderExerciseList();
         this.showToast('🗑️ 記録を削除しました');
     }
 
     async renderAnalytics() {
-        const select = document.getElementById('analyticsExercise');
+        const chartsList = document.getElementById('chartsList');
         const exercises = await this.db.getExercises();
-
-        select.innerHTML = '<option value="">種目を選択</option>' +
-            exercises.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-
-        // Add event listener for exercise selection
-        select.onchange = async (e) => {
-            const exerciseId = parseInt(e.target.value);
-            if (exerciseId) {
-                await this.renderExerciseChart(exerciseId);
-            } else {
-                this.clearChart();
-            }
-        };
 
         // Calculate overall stats
         const allWorkouts = await this.db.getWorkouts();
         const uniqueDates = new Set(allWorkouts.map(w => new Date(w.date).toDateString()));
 
-        let totalSets = 0;
-        let maxWeight = 0;
-        let totalVolume = 0;
 
         allWorkouts.forEach(workout => {
-            workout.sets.forEach(set => {
-                totalSets++;
-                if (set.weight > maxWeight) maxWeight = set.weight;
-                totalVolume += set.weight * set.reps;
-            });
+            // Keep loop for consistency if needed later, or remove if unused. 
+            // Currently only used for uniqueDates which is derived from map outside loop.
+            // Actually uniqueDates uses allWorkouts directly. This loop was for deleted stats.
         });
 
-        document.querySelector('.stat-card:nth-child(1) .stat-value').textContent = `${uniqueDates.size}日`;
-        document.querySelector('.stat-card:nth-child(2) .stat-value').textContent = `${totalSets}セット`;
-        document.querySelector('.stat-card:nth-child(3) .stat-value').textContent = maxWeight > 0 ? `${maxWeight}kg` : '-';
-        document.querySelector('.stat-card:nth-child(4) .stat-value').textContent = `${totalVolume.toLocaleString()}kg`;
+        document.querySelector('.stat-card:nth-child(1) .stat-value').textContent = `${uniqueDates.size} 日`;
 
-        // Initial clear
-        this.clearChart();
+        // Render charts for each exercise
+        this.clearCharts();
+        chartsList.innerHTML = '';
+        this.charts = {};
+
+        for (const exercise of exercises) {
+            const workouts = await this.db.getWorkouts(exercise.id);
+            if (workouts.length === 0) continue;
+
+            const chartCard = document.createElement('div');
+            chartCard.className = 'chart-card';
+            const canvasId = `chart-${exercise.id}`;
+
+            chartCard.innerHTML = `
+                <div class="chart-title">
+                    <span>${exercise.category === 'walking' ? '👟' : '💪'}</span>
+                    ${exercise.name}
+                </div>
+                <div class="chart-container">
+                    <canvas id="${canvasId}"></canvas>
+                </div>
+            `;
+            chartsList.appendChild(chartCard);
+
+            await this.renderSingleChart(exercise.id, canvasId);
+        }
+
+        if (chartsList.innerHTML === '') {
+            chartsList.innerHTML = '<div class="empty-state"><p>表示できるデータがありません。トレーニングを記録してください。</p></div>';
+        }
     }
 
-    async renderExerciseChart(exerciseId) {
-        if (typeof Chart === 'undefined') {
-            const container = document.querySelector('.chart-container');
-            container.innerHTML = '<div class="chart-error">グラフライブラリを読み込めませんでした。</div>';
-            return;
-        }
+    async renderSingleChart(exerciseId, canvasId) {
+        if (typeof Chart === 'undefined') return;
 
         const workouts = await this.db.getWorkouts(exerciseId);
-        const placeholder = document.getElementById('chartPlaceholder');
+        const exercise = await this.db.getExerciseById(exerciseId);
 
-        if (workouts.length === 0) {
-            this.clearChart();
-            if (placeholder) placeholder.style.display = 'block';
-            return;
-        }
+        if (workouts.length === 0 || !exercise) return;
 
-        if (placeholder) placeholder.style.display = 'none';
-
-        // Sort by date ascending for chart
         workouts.sort((a, b) => new Date(a.date) - new Date(b.date));
 
         const labels = [];
-        const maxWeights = [];
-        const avgWeights = [];
+        const data1 = [];
+        const data2 = [];
+        // Robust check for walking category or name
+        const isWalking = exercise.category === 'walking' || exercise.name === 'ウォーキング' || exercise.name === 'Walking';
 
         workouts.forEach(workout => {
-            const date = new Date(workout.date);
-            const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+            const dateStr = new Date(workout.date).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
             labels.push(dateStr);
 
-            let maxWeight = 0;
-            let totalWeightForSession = 0;
-            let sessionSets = 0;
+            if (isWalking) {
+                data1.push(workout.sets[0].reps);
+            } else {
+                let maxW = 0;
+                let totalW = 0;
+                let count = 0;
 
-            workout.sets.forEach(set => {
-                if (set && set.weight) {
-                    if (set.weight > maxWeight) maxWeight = set.weight;
-                    totalWeightForSession += set.weight;
-                    sessionSets++;
-                }
-            });
+                workout.sets.forEach(set => {
+                    if (set && set.weight !== undefined) {
+                        if (set.weight > maxW) maxW = set.weight;
+                        totalW += set.weight;
+                        count++;
+                    }
+                });
 
-            maxWeights.push(maxWeight);
-            avgWeights.push(sessionSets > 0 ? parseFloat((totalWeightForSession / sessionSets).toFixed(1)) : 0);
+                data1.push(maxW);
+                data2.push(count > 0 ? parseFloat((totalW / count).toFixed(1)) : 0);
+            }
         });
 
-        if (this.chart) {
-            this.chart.destroy();
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const datasets = [{
+            label: isWalking ? '歩行時間' : '最大重量',
+            data: data1,
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            borderWidth: 3,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 4,
+            pointBackgroundColor: '#6366f1'
+        }];
+
+        if (!isWalking) {
+            datasets.push({
+                label: '平均重量',
+                data: data2,
+                borderColor: '#a855f7',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                tension: 0.4,
+                fill: false,
+                pointRadius: 3,
+                pointBackgroundColor: '#a855f7'
+            });
         }
 
-        const ctx = document.getElementById('progressChart').getContext('2d');
-        this.chart = new Chart(ctx, {
+        this.charts[exerciseId] = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: '最大重量',
-                        data: maxWeights,
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        borderWidth: 3,
-                        tension: 0.4,
-                        fill: true,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#6366f1'
-                    },
-                    {
-                        label: '平均重量',
-                        data: avgWeights,
-                        borderColor: '#a855f7',
-                        backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        tension: 0.4,
-                        fill: false,
-                        pointRadius: 3,
-                        pointBackgroundColor: '#a855f7'
-                    }
-                ]
-            },
+            data: { labels, datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -855,11 +912,7 @@ class TrainTrackApp {
                     legend: {
                         display: true,
                         position: 'top',
-                        labels: {
-                            color: '#9ca3af',
-                            usePointStyle: true,
-                            padding: 20
-                        }
+                        labels: { color: '#9ca3af', usePointStyle: true, font: { size: 10 } }
                     },
                     tooltip: {
                         mode: 'index',
@@ -868,26 +921,23 @@ class TrainTrackApp {
                         titleColor: '#f9fafb',
                         bodyColor: '#d1d5db',
                         padding: 12,
-                        displayColors: true
+                        displayColors: true,
+                        callbacks: {
+                            label: (context) => {
+                                return (context.dataset.label || '') + ': ' + context.parsed.y + (isWalking ? '分' : 'kg');
+                            }
+                        }
                     }
                 },
                 scales: {
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: '#9ca3af'
-                        }
-                    },
+                    x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 } } },
                     y: {
                         beginAtZero: true,
-                        grid: {
-                            color: 'rgba(75, 85, 99, 0.2)'
-                        },
+                        grid: { color: 'rgba(75, 85, 99, 0.2)' },
                         ticks: {
                             color: '#9ca3af',
-                            callback: (value) => value + 'kg'
+                            font: { size: 10 },
+                            callback: (value) => value + (isWalking ? '分' : 'kg')
                         }
                     }
                 }
@@ -895,46 +945,14 @@ class TrainTrackApp {
         });
     }
 
-    clearChart() {
-        if (this.chart) {
-            this.chart.destroy();
-            this.chart = null;
+    clearCharts() {
+        if (this.charts) {
+            Object.values(this.charts).forEach(chart => chart.destroy());
+            this.charts = {};
         }
-        const placeholder = document.getElementById('chartPlaceholder');
-        if (placeholder) placeholder.style.display = 'block';
     }
 
-    async exportData() {
-        const exercises = await this.db.getExercises();
-        const workouts = await this.db.getWorkouts();
-
-        const data = { exercises, workouts, exportDate: new Date().toISOString() };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `traintrack-backup-${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-
-        URL.revokeObjectURL(url);
-        this.showToast('✅ データをエクスポートしました');
-    }
-
-    async clearData() {
-        if (!confirm('全てのデータを削除しますか？この操作は取り消せません。')) {
-            return;
-        }
-
-        if (!confirm('本当に削除しますか？')) {
-            return;
-        }
-
-        await this.db.clearAllData();
-        this.renderExerciseList();
-        this.renderSettingsExercises();
-        this.showToast('🗑️ 全データを削除しました');
-    }
+    // Data management functions removed
 
     showToast(message) {
         const toast = document.createElement('div');
@@ -952,9 +970,7 @@ class TrainTrackApp {
             z-index: 10000;
             animation: slideDown 0.3s ease-out;
         `;
-
         document.body.appendChild(toast);
-
         setTimeout(() => {
             toast.style.animation = 'slideUp 0.3s ease-out';
             setTimeout(() => toast.remove(), 300);
@@ -967,9 +983,11 @@ let app;
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         app = new TrainTrackApp();
+        window.app = app; // Expose for inline handlers
     });
 } else {
     app = new TrainTrackApp();
+    window.app = app; // Expose for inline handlers
 }
 
 // Service Worker Registration
