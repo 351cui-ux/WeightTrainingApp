@@ -2,7 +2,7 @@
   "name": "TrainTrack",
   "short_name": "TrainTrack",
   "description": "ウエイトトレーニング進捗管理アプリ",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0a0e1a",
   "theme_color": "#0a0e1a",

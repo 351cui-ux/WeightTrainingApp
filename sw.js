@@ -1,10 +1,10 @@
-const CACHE_NAME = 'traintrack-v1';
+const CACHE_NAME = 'traintrack-v2';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/style.css',
-    '/app.js',
-    '/manifest.json',
+    './',
+    'index.html',
+    'style.css',
+    'app.js',
+    'manifest.json',
     'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
     'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
 ];
