@@ -1,4 +1,4 @@
-const CACHE_NAME = 'traintrack-v11';
+const CACHE_NAME = 'traintrack-v12';
 const urlsToCache = [
     './',
     'index.html',
@@ -14,6 +14,7 @@ self.addEventListener('install', event => {
         caches.open(CACHE_NAME)
             .then(cache => cache.addAll(urlsToCache))
     );
+    self.skipWaiting(); // Force activation
 });
 
 self.addEventListener('fetch', event => {
@@ -35,4 +36,5 @@ self.addEventListener('activate', event => {
             );
         })
     );
+    return self.clients.claim(); // Take control immediately
 });
