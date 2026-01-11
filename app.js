@@ -138,7 +138,7 @@ class TrainTrackApp {
             this.bindEvents();
             this.updateDateDisplay();
             await this.refreshContent();
-            console.log('App: Initialization complete (v2.0)');
+            console.log('App: Initialization complete (v2.2)');
         } catch (e) {
             console.error('App: Failed to init', e);
             alert('アプリの読み込みに失敗しました。IndexedDBをリセットして試してください。');

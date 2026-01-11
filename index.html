@@ -28,7 +28,7 @@
             <div class="header-content">
                 <h1 id="currentDate">--月--日 (--)</h1>
                 <div class="header-right">
-                    <span class="app-version">v2.1</span>
+                    <span class="app-version">v2.2</span>
                 </div>
             </div>
         </header>
@@ -178,34 +178,35 @@
                 <div id="formWalking" class="hidden">
                     <div class="input-group">
                         <label>ウォーキング時間 (分)</label>
-                        <input type="number" id="inputWalkTime" placeholder="30" class="themed-input" min="1">
+                        <input type="number" id="inputWalkTime" placeholder="30" class="themed-input" min="0">
                     </div>
                 </div>
 
                 <div id="formSets">
                     <div class="sets-header">
+                        <span></span>
                         <span>重量 (kg)</span>
                         <span>回数 (Reps)</span>
                     </div>
                     <div class="set-row">
                         <span class="set-num">1</span>
-                        <input type="number" id="w1" placeholder="0" class="themed-input compact" step="0.5">
-                        <input type="number" id="r1" placeholder="10" class="themed-input compact">
+                        <input type="number" id="w1" placeholder="0" class="themed-input compact" step="0.5" min="0">
+                        <input type="number" id="r1" placeholder="10" class="themed-input compact" min="0">
                     </div>
                     <div class="set-row">
                         <span class="set-num">2</span>
-                        <input type="number" id="w2" placeholder="0" class="themed-input compact" step="0.5">
-                        <input type="number" id="r2" placeholder="10" class="themed-input compact">
+                        <input type="number" id="w2" placeholder="0" class="themed-input compact" step="0.5" min="0">
+                        <input type="number" id="r2" placeholder="10" class="themed-input compact" min="0">
                     </div>
                     <div class="set-row">
                         <span class="set-num">3</span>
-                        <input type="number" id="w3" placeholder="0" class="themed-input compact" step="0.5">
-                        <input type="number" id="r3" placeholder="10" class="themed-input compact">
+                        <input type="number" id="w3" placeholder="0" class="themed-input compact" step="0.5" min="0">
+                        <input type="number" id="r3" placeholder="10" class="themed-input compact" min="0">
                     </div>
                     <div class="set-row">
                         <span class="set-num">4</span>
-                        <input type="number" id="w4" placeholder="0" class="themed-input compact" step="0.5">
-                        <input type="number" id="r4" placeholder="8" class="themed-input compact">
+                        <input type="number" id="w4" placeholder="0" class="themed-input compact" step="0.5" min="0">
+                        <input type="number" id="r4" placeholder="8" class="themed-input compact" min="0">
                     </div>
                     <p class="hint">💡 4セット目の回数が「最終回数」として表示されます</p>
                 </div>
