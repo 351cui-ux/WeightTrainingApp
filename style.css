@@ -141,23 +141,16 @@ body {
 }
 
 /* Category Selector */
-/* Category Selector */
 .category-selector {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-xl);
-    overflow-x: auto;
-    padding-bottom: 4px;
-    /* Space for scrollbar */
-    -webkit-overflow-scrolling: touch;
-    /* Smooth scrolling on iOS */
 }
 
 .category-btn {
-    flex: 0 0 auto;
-    /* Prevent shrinking */
-    min-width: 80px;
-    /* Minimum width for tap target */
+    flex: unset;
+    min-width: 0;
     background: var(--bg-secondary);
     border: 2px solid var(--border-color);
     border-radius: var(--radius-lg);
