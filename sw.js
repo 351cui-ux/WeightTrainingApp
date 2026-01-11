@@ -1,4 +1,4 @@
-const CACHE_NAME = 'traintrack-v12';
+const CACHE_NAME = 'traintrack-v14';
 const urlsToCache = [
     './',
     'index.html',
