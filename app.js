@@ -1,182 +1,167 @@
-class DatabaseManager {
+class DB {
     constructor() {
-        this.dbName = 'TrainTrackDBv2';
-        this.db = null;
+        this.dbName = 'TrainTrackDB';
     }
     async init() {
-        return new Promise((resolve) => {
-            const request = indexedDB.open(this.dbName, 1);
-            request.onupgradeneeded = (e) => {
+        return new Promise(res => {
+            const r = indexedDB.open(this.dbName, 2);
+            r.onupgradeneeded = e => {
                 const db = e.target.result;
-                db.createObjectStore('exercises', { keyPath: 'id', autoIncrement: true });
-                db.createObjectStore('workouts', { keyPath: 'id', autoIncrement: true });
+                if (!db.objectStoreNames.contains('exercises')) {
+                    const s = db.createObjectStore('exercises', { keyPath: 'id', autoIncrement: true });
+                    s.createIndex('order', 'order');
+                }
+                if (!db.objectStoreNames.contains('workouts')) {
+                    db.createObjectStore('workouts', { keyPath: 'id', autoIncrement: true });
+                }
             };
-            request.onsuccess = (e) => { this.db = e.target.result; resolve(); };
+            r.onsuccess = e => { this.db = e.target.result; res(); };
         });
     }
-    async getStore(name, mode = 'readonly') {
-        return this.db.transaction(name, mode).objectStore(name);
-    }
-    async getAll(name) {
-        const store = await this.getStore(name);
-        return new Promise(r => { const req = store.getAll(); req.onsuccess = () => r(req.result); });
-    }
-    async add(name, data) {
-        const store = await this.getStore(name, 'readwrite');
-        return new Promise(r => { const req = store.add(data); req.onsuccess = () => r(req.result); });
-    }
-    async update(name, data) {
-        const store = await this.getStore(name, 'readwrite');
-        store.put(data);
-    }
-    async delete(name, id) {
-        const store = await this.getStore(name, 'readwrite');
-        store.delete(id);
-    }
+    store(n, m = 'readonly') { return this.db.transaction(n, m).objectStore(n) }
+    getAll(n) { return new Promise(r => { const q = this.store(n).getAll(); q.onsuccess = () => r(q.result) }) }
+    add(n, d) { this.store(n, 'readwrite').add(d) }
+    put(n, d) { this.store(n, 'readwrite').put(d) }
 }
 
-class TrainTrackApp {
+class App {
     constructor() {
-        this.db = new DatabaseManager();
-        this.activeCategory = 'push';
-        this.activeView = 'record';
+        this.db = new DB();
+        this.cat = 'push';
+        this.view = 'record';
         this.init();
     }
+
     async init() {
         await this.db.init();
-        this.bindEvents();
+        this.bind();
         this.render();
-        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', weekday: 'short' });
+        document.getElementById('currentDate').textContent =
+            new Date().toLocaleDateString('ja-JP');
     }
-    bindEvents() {
-        document.querySelectorAll('.nav-item').forEach(b => b.onclick = () => this.switchView(b.dataset.view));
-        document.querySelectorAll('.cat-btn, .tab-btn').forEach(b => b.onclick = () => {
-            this.activeCategory = b.dataset.category;
-            this.render();
+
+    bind() {
+        document.querySelectorAll('.cat-btn,.tab-btn').forEach(b => {
+            b.onclick = () => { this.cat = b.dataset.category; this.render(); }
         });
-        document.getElementById('globalAddBtn').onclick = () => this.openSetModal();
-        document.getElementById('addExerciseBtn').onclick = () => this.openExModal();
-        document.querySelectorAll('.modal-close').forEach(b => b.onclick = () => this.closeModal());
-        document.getElementById('btnSaveEx').onclick = () => this.saveExercise();
-        document.getElementById('btnSaveSet').onclick = () => this.saveWorkout();
-        document.getElementById('exportCsvBtn').onclick = () => this.exportCSV();
-        document.getElementById('importCsvBtnTrigger').onclick = () => document.getElementById('csvImportInput').click();
-        document.getElementById('csvImportInput').onchange = (e) => this.importCSV(e);
+        document.querySelectorAll('.nav-item').forEach(b => {
+            b.onclick = () => this.switchView(b.dataset.view)
+        });
+        document.getElementById('globalAddBtn').onclick = () => this.openSet();
+        document.getElementById('addExerciseBtn').onclick = () => this.openEx();
+        document.querySelectorAll('.modal-close').forEach(b => b.onclick = () => this.close());
+        document.getElementById('btnSaveEx').onclick = () => this.saveEx();
+        document.getElementById('btnSaveSet').onclick = () => this.saveSet();
     }
-    switchView(view) {
-        this.activeView = view;
-        document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === `${view}View`));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === view));
+
+    switchView(v) {
+        this.view = v;
+        document.querySelectorAll('.view').forEach(e => e.classList.toggle('active', e.id === v + 'View'));
+        document.getElementById('globalAddBtn').style.display = v === 'record' ? 'block' : 'none';
         this.render();
     }
+
     async render() {
-        const exercises = await this.db.getAll('exercises');
-        const workouts = await this.db.getAll('workouts');
+        const ex = await this.db.getAll('exercises');
+        const wo = await this.db.getAll('workouts');
+        const today = new Date().toISOString().slice(0, 10);
 
-        // カテゴリボタンの状態同期
-        document.querySelectorAll('.cat-btn, .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.category === this.activeCategory));
-
-        if (this.activeView === 'record') {
+        if (this.view === 'record') {
             const grid = document.getElementById('exerciseGrid');
-            grid.innerHTML = exercises.filter(e => e.category === this.activeCategory).map(ex => {
-                const history = workouts.filter(w => w.exerciseId === ex.id).sort((a,b) => new Date(b.date) - new Date(a.date));
-                const last = history[0];
-                const stats = last ? (ex.category === 'walking' ? `${last.walkingTime}分` : `${last.sets[0].weight}kg×${last.sets[0].reps}`) : '記録なし';
-                return `<div class="exercise-card" onclick="app.openSetModal(${ex.id})"><strong>${ex.name}</strong><br><small style="color:var(--text-muted)">前回: ${stats}</small></div>`;
-            }).join('');
+            grid.innerHTML = ex.filter(e => e.category === this.cat)
+                .map(e => {
+                    const w = wo.find(x => x.exerciseId === e.id && x.date === today);
+                    if (!w) return '';
+                    return `<div class="exercise-card">${e.name}<br>${w.sets ? w.sets.at(-1).weight + 'kg×' + w.sets.at(-1).reps : w.walkingTime + '分'}</div>`;
+                }).join('');
         }
-        if (this.activeView === 'settings') {
-            document.getElementById('exerciseManagementList').innerHTML = exercises.filter(e => e.category === this.activeCategory).map(ex => `
-                <div class="exercise-card" style="display:flex; justify-content:space-between">
-                    <span>${ex.name}</span>
-                    <button onclick="app.deleteExercise(${ex.id})" style="background:none; border:none; color:#ef4444">削除</button>
-                </div>
-            `).join('');
+
+        if (this.view === 'settings') {
+            document.getElementById('exerciseManagementList').innerHTML =
+                ex.filter(e => e.category === this.cat)
+                    .sort((a, b) => a.order - b.order)
+                    .map((e, i) => `
+          <div class="exercise-card">
+            ${e.name}
+            <button onclick="app.move(${e.id},-1)">▲</button>
+            <button onclick="app.move(${e.id},1)">▼</button>
+          </div>`).join('');
         }
-        if (this.activeView === 'history') {
-            const list = document.getElementById('historyList');
-            const sortedWorkouts = workouts.sort((a,b) => new Date(b.date) - new Date(a.date));
-            list.innerHTML = sortedWorkouts.map(w => {
-                const ex = exercises.find(e => e.id === w.exerciseId);
-                if (!ex) return '';
-                return `<div class="exercise-card"><strong>${w.date} - ${ex.name}</strong><br>${ex.category === 'walking' ? w.walkingTime+'分' : w.sets.map(s => s.weight+'kg×'+s.reps).join(' / ')}</div>`;
-            }).join('');
-        }
-        if (this.activeView === 'analytics') this.renderCharts(exercises, workouts);
-    }
-    renderCharts(exercises, workouts) {
-        const container = document.getElementById('analyticsList');
-        container.innerHTML = '';
-        exercises.forEach(ex => {
-            const exWorkouts = workouts.filter(w => w.exerciseId === ex.id).sort((a,b) => new Date(a.date) - new Date(b.date));
-            if (exWorkouts.length < 2) return;
-            const canvasId = `chart-${ex.id}`;
-            container.innerHTML += `<div class="chart-card"><h3>${ex.name}</h3><canvas id="${canvasId}"></canvas></div>`;
-            setTimeout(() => {
-                new Chart(document.getElementById(canvasId), {
+
+        if (this.view === 'analytics') {
+            const c = document.getElementById('analyticsList');
+            c.innerHTML = '';
+            ex.forEach(e => {
+                const data = wo.filter(w => w.exerciseId === e.id)
+                    .reduce((m, w) => { m[w.date] = w; return m }, {});
+                const labels = Object.keys(data);
+                if (labels.length < 2) return;
+                c.innerHTML += `<canvas id="c${e.id}"></canvas>`;
+                new Chart(document.getElementById('c' + e.id), {
                     type: 'line',
                     data: {
-                        labels: exWorkouts.map(w => w.date.slice(5)),
-                        datasets: [{ label: 'Weight/Time', data: exWorkouts.map(w => ex.category === 'walking' ? w.walkingTime : w.sets[0].weight), borderColor: '#6366f1', tension: 0.3 }]
-                    },
-                    options: { plugins: { legend: { display: false } } }
+                        labels,
+                        datasets: [{
+                            data: labels.map(d => data[d].sets ? data[d].sets.at(-1).weight : data[d].walkingTime)
+                        }]
+                    }
                 });
-            }, 0);
-        });
-    }
-    openExModal() {
-        document.getElementById('modalOverlay').classList.add('active');
-        document.getElementById('exerciseModal').classList.remove('hidden');
-        document.getElementById('setModal').classList.add('hidden');
-    }
-    async openSetModal(id = null) {
-        const exercises = await this.db.getAll('exercises');
-        const select = document.getElementById('selectWorkoutEx');
-        select.innerHTML = exercises.map(e => `<option value="${e.id}" ${e.id == id ? 'selected' : ''}>${e.name}</option>`).join('');
-        document.getElementById('inputWorkoutDate').value = new Date().toISOString().split('T')[0];
-        document.getElementById('modalOverlay').classList.add('active');
-        document.getElementById('setModal').classList.remove('hidden');
-        document.getElementById('exerciseModal').classList.add('hidden');
-        select.onchange = () => {
-            const ex = exercises.find(e => e.id == select.value);
-            const isWalk = ex.category === 'walking';
-            document.getElementById('formSets').classList.toggle('hidden', isWalk);
-            document.getElementById('formWalking').classList.toggle('hidden', !isWalk);
-        };
-        select.onchange();
-    }
-    closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
-    async saveExercise() {
-        const name = document.getElementById('inputExName').value;
-        const category = document.getElementById('selectExCategory').value;
-        if (name) { await this.db.add('exercises', { name, category }); this.closeModal(); this.render(); }
-    }
-    async deleteExercise(id) { if (confirm('削除しますか？')) { await this.db.delete('exercises', id); this.render(); } }
-    async saveWorkout() {
-        const exId = parseInt(document.getElementById('selectWorkoutEx').value);
-        const date = document.getElementById('inputWorkoutDate').value;
-        const exercises = await this.db.getAll('exercises');
-        const ex = exercises.find(e => e.id === exId);
-        if (ex.category === 'walking') {
-            const walkingTime = document.getElementById('inputWalkTime').value;
-            await this.db.add('workouts', { exerciseId: exId, date, walkingTime });
-        } else {
-            const sets = [];
-            for (let i=1; i<=4; i++) {
-                const w = document.getElementById('w'+i).value;
-                const r = document.getElementById('r'+i).value;
-                if (w && r) sets.push({ weight: parseFloat(w), reps: parseInt(r) });
-            }
-            if (sets.length) await this.db.add('workouts', { exerciseId: exId, date, sets });
+            });
         }
-        this.closeModal(); this.render(); this.showToast('保存しました');
     }
-    showToast(m) {
-        const t = document.getElementById('toast');
-        t.textContent = m; t.classList.remove('hidden');
-        setTimeout(() => t.classList.add('hidden'), 2000);
+
+    async openSet() {
+        const ex = await this.db.getAll('exercises');
+        document.getElementById('selectWorkoutEx').innerHTML =
+            ex.filter(e => e.category === this.cat).map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+        document.getElementById('inputWorkoutDate').value =
+            new Date().toISOString().slice(0, 10);
+        this.show('setModal');
     }
-    exportCSV() { /* CSV出力ロジック */ }
-    importCSV(e) { /* CSV入力ロジック */ }
+
+    openEx() {
+        document.getElementById('inputExName').value = '';
+        this.show('exerciseModal');
+    }
+
+    show(id) {
+        document.getElementById('modalOverlay').classList.add('active');
+        document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    close() { document.getElementById('modalOverlay').classList.remove('active') }
+
+    async saveEx() {
+        const name = inputExName.value;
+        if (!name) return;
+        const ex = await this.db.getAll('exercises');
+        this.db.add('exercises', {
+            name, category: selectExCategory.value, order: ex.length
+        });
+        this.close(); this.render();
+    }
+
+    async saveSet() {
+        const id = +selectWorkoutEx.value;
+        const date = inputWorkoutDate.value;
+        const sets = [];
+        if (w1.value) sets.push({ weight: +w1.value, reps: +r1.value });
+        if (w2.value) sets.push({ weight: +w2.value, reps: +r2.value });
+        this.db.add('workouts', { exerciseId: id, date, sets });
+        this.close(); this.render();
+    }
+
+    async move(id, dir) {
+        const ex = await this.db.getAll('exercises');
+        const i = ex.findIndex(e => e.id === id);
+        const t = ex[i + dir];
+        if (!t) return;
+        [ex[i].order, ex[i + dir].order] = [t.order, ex[i].order];
+        this.db.put('exercises', ex[i]);
+        this.db.put('exercises', t);
+        this.render();
+    }
 }
-window.app = new TrainTrackApp();
+
+window.app = new App();

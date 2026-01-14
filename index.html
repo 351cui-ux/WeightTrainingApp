@@ -1,24 +1,29 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Antigravity</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrainTrack</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
+
 <body>
     <div class="app-container">
+
         <header class="main-header">
             <div>
-                <h1>Antigravity</h1>
-                <div id="currentDate" class="app-version">---</div>
+                <h1>TrainTrack</h1>
+                <div id="currentDate" class="app-version"></div>
             </div>
-            <div class="app-version">v2.2</div>
+            <div class="app-version">v2.3</div>
         </header>
 
         <main class="content-area">
+
+            <!-- Record -->
             <div id="recordView" class="view active">
                 <nav class="category-nav">
                     <button class="cat-btn active" data-category="push">Push</button>
@@ -26,35 +31,34 @@
                     <button class="cat-btn" data-category="legs">Legs</button>
                     <button class="cat-btn" data-category="walking">Walking</button>
                 </nav>
-                <div class="exercise-grid" id="exerciseGrid"></div>
+                <div id="exerciseGrid"></div>
             </div>
 
+            <!-- History -->
             <div id="historyView" class="view">
-                <div class="section-title">トレーニング履歴</div>
+                <div class="section-title">履歴</div>
                 <div id="historyList"></div>
             </div>
 
+            <!-- Analytics -->
             <div id="analyticsView" class="view">
-                <div class="section-title">進捗分析</div>
+                <div class="section-title">分析</div>
                 <div id="analyticsList"></div>
             </div>
 
+            <!-- Settings -->
             <div id="settingsView" class="view">
                 <div class="section-title">種目管理</div>
-                <nav class="category-nav" style="background:none; padding:0 0 10px 0;">
+                <nav class="category-nav">
                     <button class="tab-btn active" data-category="push">Push</button>
                     <button class="tab-btn" data-category="pull">Pull</button>
                     <button class="tab-btn" data-category="legs">Legs</button>
                     <button class="tab-btn" data-category="walking">Walking</button>
                 </nav>
-                <div id="exerciseManagementList" class="settings-list"></div>
-                <button class="btn-ghost" id="addExerciseBtn">+ 新しい種目を追加</button>
-                
-                <div class="section-title" style="margin-top:2rem">データ管理</div>
-                <button class="btn-ghost" id="exportCsvBtn">CSVエクスポート</button>
-                <button class="btn-ghost" id="importCsvBtnTrigger">CSVインポート</button>
-                <input type="file" id="csvImportInput" style="display:none" accept=".csv">
+                <div id="exerciseManagementList"></div>
+                <button id="addExerciseBtn" class="btn-ghost">+ 新しい種目を追加</button>
             </div>
+
         </main>
 
         <button id="globalAddBtn" class="fab">+</button>
@@ -65,61 +69,49 @@
             <button class="nav-item" data-view="analytics">分析</button>
             <button class="nav-item" data-view="settings">設定</button>
         </nav>
-    </div>
 
-    <div id="modalOverlay" class="modal-overlay">
-        <div id="exerciseModal" class="modal hidden">
-            <div class="modal-header">
-                <h2 id="exModalTitle">種目を追加</h2>
-                <button class="modal-close">&times;</button>
+        <!-- Modal -->
+        <div id="modalOverlay" class="modal-overlay">
+            <div id="setModal" class="modal hidden">
+                <div class="modal-header">
+                    <h2>記録を入力</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+
+                <label>種目</label>
+                <select id="selectWorkoutEx" class="themed-input"></select>
+
+                <label>日付</label>
+                <input type="date" id="inputWorkoutDate" class="themed-input">
+
+                <div id="formSets">
+                    <div class="set-row"><input id="w1" type="number"><input id="r1" type="number"></div>
+                    <div class="set-row"><input id="w2" type="number"><input id="r2" type="number"></div>
+                </div>
+
+                <div id="formWalking" class="hidden">
+                    <input id="inputWalkTime" type="number" class="themed-input">
+                </div>
+
+                <button id="btnSaveSet" class="btn-primary">保存</button>
             </div>
-            <div class="input-group">
-                <label>種目名</label>
-                <input type="text" id="inputExName" class="themed-input">
-            </div>
-            <div class="input-group">
-                <label>カテゴリ</label>
+
+            <div id="exerciseModal" class="modal hidden">
+                <h2>種目追加</h2>
+                <input id="inputExName" class="themed-input">
                 <select id="selectExCategory" class="themed-input">
                     <option value="push">Push</option>
                     <option value="pull">Pull</option>
                     <option value="legs">Legs</option>
                     <option value="walking">Walking</option>
                 </select>
+                <button id="btnSaveEx" class="btn-primary">保存</button>
             </div>
-            <button id="btnSaveEx" class="btn-primary">保存</button>
         </div>
 
-        <div id="setModal" class="modal hidden">
-            <div class="modal-header">
-                <h2>記録を入力</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="input-group">
-                <label>種目</label>
-                <select id="selectWorkoutEx" class="themed-input"></select>
-            </div>
-            <div class="input-group">
-                <label>日付</label>
-                <input type="date" id="inputWorkoutDate" class="themed-input">
-            </div>
-            <div id="formSets">
-                <div class="sets-header"><span>Set</span><span>kg</span><span>Reps</span></div>
-                <div class="set-row"><span>1</span><input type="number" id="w1" class="themed-input compact" step="0.5"><input type="number" id="r1" class="themed-input compact"></div>
-                <div class="set-row"><span>2</span><input type="number" id="w2" class="themed-input compact" step="0.5"><input type="number" id="r2" class="themed-input compact"></div>
-                <div class="set-row"><span>3</span><input type="number" id="w3" class="themed-input compact" step="0.5"><input type="number" id="r3" class="themed-input compact"></div>
-                <div class="set-row"><span>4</span><input type="number" id="w4" class="themed-input compact" step="0.5"><input type="number" id="r4" class="themed-input compact"></div>
-            </div>
-            <div id="formWalking" class="hidden">
-                <div class="input-group">
-                    <label>時間 (分)</label>
-                    <input type="number" id="inputWalkTime" class="themed-input">
-                </div>
-            </div>
-            <button id="btnSaveSet" class="btn-primary">記録を保存</button>
-        </div>
-    </div>
+        <div id="toast" class="toast hidden"></div>
 
-    <div id="toast" class="toast hidden"></div>
-    <script src="app.js"></script>
+        <script src="app.js"></script>
 </body>
+
 </html>
