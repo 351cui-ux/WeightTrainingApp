@@ -1,34 +1,54 @@
-class DB {
+class DatabaseManager {
     constructor() {
-        this.dbName = 'TrainTrackDB';
+        this.dbName = 'TrainTrackDBv2';
+        this.db = null;
     }
+
     async init() {
-        return new Promise(res => {
-            const r = indexedDB.open(this.dbName, 2);
-            r.onupgradeneeded = e => {
+        return new Promise(resolve => {
+            const req = indexedDB.open(this.dbName, 1);
+            req.onupgradeneeded = e => {
                 const db = e.target.result;
                 if (!db.objectStoreNames.contains('exercises')) {
-                    const s = db.createObjectStore('exercises', { keyPath: 'id', autoIncrement: true });
-                    s.createIndex('order', 'order');
+                    db.createObjectStore('exercises', { keyPath: 'id', autoIncrement: true });
                 }
                 if (!db.objectStoreNames.contains('workouts')) {
                     db.createObjectStore('workouts', { keyPath: 'id', autoIncrement: true });
                 }
             };
-            r.onsuccess = e => { this.db = e.target.result; res(); };
+            req.onsuccess = e => { this.db = e.target.result; resolve(); };
         });
     }
-    store(n, m = 'readonly') { return this.db.transaction(n, m).objectStore(n) }
-    getAll(n) { return new Promise(r => { const q = this.store(n).getAll(); q.onsuccess = () => r(q.result) }) }
-    add(n, d) { this.store(n, 'readwrite').add(d) }
-    put(n, d) { this.store(n, 'readwrite').put(d) }
+
+    store(name, mode = 'readonly') {
+        return this.db.transaction(name, mode).objectStore(name);
+    }
+
+    getAll(name) {
+        return new Promise(r => {
+            const q = this.store(name).getAll();
+            q.onsuccess = () => r(q.result);
+        });
+    }
+
+    add(name, data) {
+        this.store(name, 'readwrite').add(data);
+    }
+
+    put(name, data) {
+        this.store(name, 'readwrite').put(data);
+    }
+
+    delete(name, id) {
+        this.store(name, 'readwrite').delete(id);
+    }
 }
 
-class App {
+class TrainTrackApp {
     constructor() {
-        this.db = new DB();
-        this.cat = 'push';
-        this.view = 'record';
+        this.db = new DatabaseManager();
+        this.activeCategory = 'push';
+        this.activeView = 'record';
         this.init();
     }
 
@@ -42,126 +62,136 @@ class App {
 
     bind() {
         document.querySelectorAll('.cat-btn,.tab-btn').forEach(b => {
-            b.onclick = () => { this.cat = b.dataset.category; this.render(); }
+            b.onclick = () => { this.activeCategory = b.dataset.category; this.render(); };
         });
+
         document.querySelectorAll('.nav-item').forEach(b => {
-            b.onclick = () => this.switchView(b.dataset.view)
+            b.onclick = () => this.switchView(b.dataset.view);
         });
-        document.getElementById('globalAddBtn').onclick = () => this.openSet();
-        document.getElementById('addExerciseBtn').onclick = () => this.openEx();
-        document.querySelectorAll('.modal-close').forEach(b => b.onclick = () => this.close());
-        document.getElementById('btnSaveEx').onclick = () => this.saveEx();
-        document.getElementById('btnSaveSet').onclick = () => this.saveSet();
+
+        globalAddBtn.onclick = () => this.openSetModal();
+        addExerciseBtn.onclick = () => this.openExModal();
+        btnSaveEx.onclick = () => this.saveExercise();
+        btnSaveSet.onclick = () => this.saveWorkout();
+
+        document.querySelectorAll('.modal-close').forEach(b =>
+            b.onclick = () => modalOverlay.classList.remove('active'));
     }
 
     switchView(v) {
-        this.view = v;
-        document.querySelectorAll('.view').forEach(e => e.classList.toggle('active', e.id === v + 'View'));
-        document.getElementById('globalAddBtn').style.display = v === 'record' ? 'block' : 'none';
+        this.activeView = v;
+        document.querySelectorAll('.view').forEach(e =>
+            e.classList.toggle('active', e.id === v + 'View'));
+        globalAddBtn.style.display = v === 'record' ? 'block' : 'none';
         this.render();
     }
 
     async render() {
-        const ex = await this.db.getAll('exercises');
-        const wo = await this.db.getAll('workouts');
+        const exercises = await this.db.getAll('exercises');
+        const workouts = await this.db.getAll('workouts');
         const today = new Date().toISOString().slice(0, 10);
 
-        if (this.view === 'record') {
-            const grid = document.getElementById('exerciseGrid');
-            grid.innerHTML = ex.filter(e => e.category === this.cat)
+        if (this.activeView === 'record') {
+            exerciseGrid.innerHTML = exercises
+                .filter(e => e.category === this.activeCategory)
                 .map(e => {
-                    const w = wo.find(x => x.exerciseId === e.id && x.date === today);
+                    const w = workouts.find(x => x.exerciseId === e.id && x.date === today);
                     if (!w) return '';
-                    return `<div class="exercise-card">${e.name}<br>${w.sets ? w.sets.at(-1).weight + 'kg×' + w.sets.at(-1).reps : w.walkingTime + '分'}</div>`;
+                    if (e.category === 'walking') return `<div class="exercise-card">${e.name} ${w.walkingTime}分</div>`;
+                    const s = w.sets[w.sets.length - 1];
+                    return `<div class="exercise-card">${e.name} ${s.weight}kg × ${s.reps}</div>`;
                 }).join('');
         }
 
-        if (this.view === 'settings') {
-            document.getElementById('exerciseManagementList').innerHTML =
-                ex.filter(e => e.category === this.cat)
-                    .sort((a, b) => a.order - b.order)
-                    .map((e, i) => `
-          <div class="exercise-card">
-            ${e.name}
-            <button onclick="app.move(${e.id},-1)">▲</button>
-            <button onclick="app.move(${e.id},1)">▼</button>
-          </div>`).join('');
+        if (this.activeView === 'history') {
+            historyList.innerHTML = workouts
+                .sort((a, b) => b.date.localeCompare(a.date))
+                .map(w => {
+                    const e = exercises.find(x => x.id === w.exerciseId);
+                    if (!e) return '';
+                    return `<div class="exercise-card">${w.date} - ${e.name}</div>`;
+                }).join('');
         }
 
-        if (this.view === 'analytics') {
-            const c = document.getElementById('analyticsList');
-            c.innerHTML = '';
-            ex.forEach(e => {
-                const data = wo.filter(w => w.exerciseId === e.id)
-                    .reduce((m, w) => { m[w.date] = w; return m }, {});
-                const labels = Object.keys(data);
-                if (labels.length < 2) return;
-                c.innerHTML += `<canvas id="c${e.id}"></canvas>`;
-                new Chart(document.getElementById('c' + e.id), {
+        if (this.activeView === 'analytics') {
+            analyticsList.innerHTML = '';
+            exercises.forEach(e => {
+                const data = workouts.filter(w => w.exerciseId === e.id);
+                if (data.length < 2) return;
+                const id = 'c' + e.id;
+                analyticsList.innerHTML += `<canvas id="${id}"></canvas>`;
+                new Chart(document.getElementById(id), {
                     type: 'line',
                     data: {
-                        labels,
+                        labels: data.map(d => d.date),
                         datasets: [{
-                            data: labels.map(d => data[d].sets ? data[d].sets.at(-1).weight : data[d].walkingTime)
+                            label: e.name,
+                            data: data.map(d =>
+                                e.category === 'walking'
+                                    ? d.walkingTime
+                                    : d.sets[d.sets.length - 1].weight
+                            )
                         }]
                     }
                 });
             });
         }
+
+        if (this.activeView === 'settings') {
+            exerciseManagementList.innerHTML = exercises
+                .filter(e => e.category === this.activeCategory)
+                .map(e => `
+          <div class="exercise-card">
+            ${e.name}
+            <button onclick="app.deleteExercise(${e.id})">削除</button>
+          </div>`).join('');
+        }
     }
 
-    async openSet() {
-        const ex = await this.db.getAll('exercises');
-        document.getElementById('selectWorkoutEx').innerHTML =
-            ex.filter(e => e.category === this.cat).map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-        document.getElementById('inputWorkoutDate').value =
-            new Date().toISOString().slice(0, 10);
-        this.show('setModal');
+    openExModal() {
+        inputExName.value = '';
+        modalOverlay.classList.add('active');
+        exerciseModal.classList.remove('hidden');
+        setModal.classList.add('hidden');
     }
 
-    openEx() {
-        document.getElementById('inputExName').value = '';
-        this.show('exerciseModal');
+    async openSetModal() {
+        const exercises = await this.db.getAll('exercises');
+        selectWorkoutEx.innerHTML = exercises
+            .filter(e => e.category === this.activeCategory)
+            .map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+        inputWorkoutDate.value = new Date().toISOString().slice(0, 10);
+        modalOverlay.classList.add('active');
+        setModal.classList.remove('hidden');
+        exerciseModal.classList.add('hidden');
     }
 
-    show(id) {
-        document.getElementById('modalOverlay').classList.add('active');
-        document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
-        document.getElementById(id).classList.remove('hidden');
-    }
-
-    close() { document.getElementById('modalOverlay').classList.remove('active') }
-
-    async saveEx() {
-        const name = inputExName.value;
-        if (!name) return;
-        const ex = await this.db.getAll('exercises');
+    saveExercise() {
+        if (!inputExName.value) return;
         this.db.add('exercises', {
-            name, category: selectExCategory.value, order: ex.length
+            name: inputExName.value,
+            category: selectExCategory.value
         });
-        this.close(); this.render();
+        modalOverlay.classList.remove('active');
+        this.render();
     }
 
-    async saveSet() {
-        const id = +selectWorkoutEx.value;
+    deleteExercise(id) {
+        if (!confirm('削除しますか？')) return;
+        this.db.delete('exercises', id);
+        this.render();
+    }
+
+    saveWorkout() {
+        const exId = +selectWorkoutEx.value;
         const date = inputWorkoutDate.value;
         const sets = [];
-        if (w1.value) sets.push({ weight: +w1.value, reps: +r1.value });
-        if (w2.value) sets.push({ weight: +w2.value, reps: +r2.value });
-        this.db.add('workouts', { exerciseId: id, date, sets });
-        this.close(); this.render();
-    }
-
-    async move(id, dir) {
-        const ex = await this.db.getAll('exercises');
-        const i = ex.findIndex(e => e.id === id);
-        const t = ex[i + dir];
-        if (!t) return;
-        [ex[i].order, ex[i + dir].order] = [t.order, ex[i].order];
-        this.db.put('exercises', ex[i]);
-        this.db.put('exercises', t);
+        if (w1.value && r1.value) sets.push({ weight: +w1.value, reps: +r1.value });
+        if (w2.value && r2.value) sets.push({ weight: +w2.value, reps: +r2.value });
+        if (sets.length) this.db.add('workouts', { exerciseId: exId, date, sets });
+        modalOverlay.classList.remove('active');
         this.render();
     }
 }
 
-window.app = new App();
+window.app = new TrainTrackApp();
