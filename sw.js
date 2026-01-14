@@ -1,40 +1,10 @@
-const CACHE_NAME = 'traintrack-v2.2';
-const urlsToCache = [
-    './',
-    'index.html?v=200',
-    'style.css?v=200',
-    'app.js?v=200',
-    'manifest.json',
-    'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
-    'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap'
-];
+const CACHE_NAME = 'antigravity-v2.2';
+const urlsToCache = ['./', 'index.html', 'style.css', 'app.js', 'manifest.json'];
 
-self.addEventListener('install', event => {
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(urlsToCache))
-    );
-    self.skipWaiting();
+self.addEventListener('install', (event) => {
+    event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache)));
 });
 
-self.addEventListener('activate', event => {
-    event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cacheName => {
-                    if (cacheName !== CACHE_NAME) {
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        })
-    );
-    return self.clients.claim();
-});
-
-self.addEventListener('fetch', event => {
-    event.respondWith(
-        caches.match(event.request)
-            .then(response => response || fetch(event.request))
-    );
+self.addEventListener('fetch', (event) => {
+    event.respondWith(caches.match(event.request).then((resp) => resp || fetch(event.request)));
 });
