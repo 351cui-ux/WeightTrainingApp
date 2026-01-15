@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TrainTrack v7.6</title>
+    <title>TrainTrack v7.4</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -242,39 +242,6 @@
             border-color: #f8d7da;
         }
 
-        .action-group {
-            display: flex;
-            gap: 12px;
-            margin-top: 30px;
-            padding-bottom: 10px;
-        }
-
-        .btn-large {
-            flex: 1;
-            height: 55px;
-            border-radius: 14px;
-            font-size: 18px;
-            font-weight: 800;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            -webkit-appearance: none;
-        }
-
-        .btn-cancel {
-            background: #e5e5ea;
-            color: #3a3a3c;
-        }
-
-        .btn-save {
-            background: var(--primary);
-            color: #ffffff;
-            flex: 2;
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
-        }
-
         .exercise-item {
             display: flex;
             flex-direction: column;
@@ -316,7 +283,7 @@
 
     <header>
         <div class="app-name">TrainTrack</div>
-        <div class="version">v7.6</div>
+        <div class="version">v7.4</div>
     </header>
 
     <main>
@@ -332,8 +299,8 @@
                 <label>日付</label>
                 <input type="date" id="inputDate">
                 <label>カテゴリー</label>
-                <div class="filter-group" id="inputFilterGroup">
-                    <button class="filter-btn active" data-cat="push">Push</button>
+                <div class="filter-group">
+                    <button class="filter-btn" data-cat="push">Push</button>
                     <button class="filter-btn" data-cat="pull">Pull</button>
                     <button class="filter-btn" data-cat="legs">Legs</button>
                     <button class="filter-btn" data-cat="walking">Walk</button>
@@ -358,9 +325,10 @@
                     <div class="set-row">時間: <input type="number" id="walkingTime" inputmode="numeric"> 分</div>
                 </div>
 
-                <div class="action-group">
-                    <button id="cancelBtn" class="btn-large btn-cancel">中止</button>
-                    <button id="saveBtn" class="btn-large btn-save">保存する</button>
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button id="cancelBtn" style="flex:1; border-radius:12px; font-weight:bold;">中止</button>
+                    <button id="saveBtn"
+                        style="flex:2; background:var(--primary); color:#fff; border:none; border-radius:12px; font-weight:bold;">保存</button>
                 </div>
             </div>
         </section>
@@ -436,9 +404,7 @@
             if (target) target.classList.add('active');
             const btn = document.querySelector(`.bottom-tabs button[data-tab="${id}"]`);
             if (btn) btn.classList.add('active');
-
             document.getElementById('addTraining').style.display = (id === 'training') ? 'flex' : 'none';
-
             if (id === 'training') renderToday();
             if (id === 'history') { renderCalendar(); renderHistory(); }
             if (id === 'analysis') renderAnalysis();
@@ -542,7 +508,7 @@
         function editRecord(w) {
             editingId = w.id;
             document.getElementById('inputDate').value = w.date;
-            document.querySelectorAll('#inputFilterGroup .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === w.category));
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === w.category));
             filterEx(w.category, w.exerciseId);
             setTimeout(() => {
                 document.getElementById('walkingSpeed').value = w.walkingSpeed || '';
@@ -607,8 +573,7 @@
 
         function renderAnalysis() {
             const container = document.getElementById('analysisChartsContainer');
-            container.innerHTML = '';
-            activeCharts.forEach(c => { if (c) c.destroy(); }); activeCharts = [];
+            container.innerHTML = ''; activeCharts.forEach(c => c.destroy()); activeCharts = [];
             const tx = db.transaction(['workouts', 'exercises'], 'readonly');
             tx.objectStore('exercises').getAll().onsuccess = (e1) => {
                 const exercises = e1.target.result;
@@ -634,8 +599,7 @@
                                 { label: '回 (右)', data: exWorkouts.map(w => (w.sets && w.sets.length) ? w.sets[w.sets.length - 1].reps : 0), borderColor: '#ff9500', yAxisID: 'yRight', borderDash: [5, 5], tension: 0.3, pointRadius: 4 }
                             ];
                         }
-                        const ctx = document.getElementById(`chart-${id}`).getContext('2d');
-                        activeCharts.push(new Chart(ctx, {
+                        activeCharts.push(new Chart(document.getElementById(`chart-${id}`).getContext('2d'), {
                             type: 'line', data: { labels, datasets },
                             options: { responsive: true, maintainAspectRatio: false, scales: ex.category === 'walking' ? { y: { beginAtZero: true } } : { yLeft: { type: 'linear', position: 'left' }, yRight: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } } } }
                         }));
@@ -697,17 +661,15 @@
                     editingId = null;
                     document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10);
                     document.querySelectorAll('#strengthInputs input, #walkingInputs input').forEach(i => i.value = '');
-                    // 新規作成時はデフォルトでPushを表示し初期化
-                    document.querySelectorAll('#inputFilterGroup .filter-btn').forEach(b => b.classList.remove('active'));
-                    document.querySelector('#inputFilterGroup .filter-btn[data-cat="push"]').classList.add('active');
-                    filterEx('push');
-                    switchTab('trainingInput');
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelector('.filter-btn[data-cat="push"]').classList.add('active');
+                    filterEx('push'); switchTab('trainingInput');
                 };
                 document.getElementById('saveBtn').onclick = saveTraining;
                 document.getElementById('cancelBtn').onclick = () => switchTab('training');
-                document.querySelectorAll('#inputFilterGroup .filter-btn').forEach(btn => {
+                document.querySelectorAll('.filter-btn').forEach(btn => {
                     btn.onclick = function () {
-                        document.querySelectorAll('#inputFilterGroup .filter-btn').forEach(b => b.classList.remove('active'));
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                         this.classList.add('active'); filterEx(this.dataset.cat);
                     };
                 });
