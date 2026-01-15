@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TrainTrack v6.2</title>
+    <title>TrainTrack v6.3</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -72,6 +72,21 @@
             border-radius: 16px;
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        /* 入力欄のズレを防止する設定 */
+        input,
+        select {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 12px;
+            font-size: 17px;
+            background: #fff;
+            box-sizing: border-box;
+            /* 幅の計算を正確にする */
         }
 
         .bottom-tabs {
@@ -164,17 +179,6 @@
             display: block;
         }
 
-        input,
-        select {
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 12px;
-            border: 1px solid #d1d1d6;
-            border-radius: 12px;
-            font-size: 17px;
-            background: #fff;
-        }
-
         .set-row {
             display: flex;
             align-items: center;
@@ -190,6 +194,7 @@
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 8px;
+            flex-shrink: 0;
         }
 
         button {
@@ -226,6 +231,15 @@
             border-bottom: none;
         }
 
+        /* 種目リストの並べ替え行 */
+        .exercise-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
         .order-btn {
             padding: 5px 10px;
             font-size: 14px;
@@ -249,8 +263,9 @@
                 <h2 id="inputTitle">記録を入力</h2>
                 <label>日付</label>
                 <input type="date" id="inputDate">
-                <label>種目</label>
+                <label>種目を選択</label>
                 <select id="exerciseSelect" onchange="updateInputs()"></select>
+
                 <div id="strengthInputs">
                     <div class="set-row">1: <input type="number" data-field="weight" step="2.5" inputmode="decimal"> kg
                         × <input type="number" data-field="reps" inputmode="numeric"> 回</div>
@@ -261,8 +276,12 @@
                     <div class="set-row">4: <input type="number" data-field="weight" step="2.5" inputmode="decimal"> kg
                         × <input type="number" data-field="reps" inputmode="numeric"> 回</div>
                 </div>
-                <div id="walkingInputs" style="display:none"><label>歩行時間（分）</label><input type="number" id="walkingTime"
-                        inputmode="numeric"></div>
+
+                <div id="walkingInputs" style="display:none">
+                    <label>歩行時間（分）</label>
+                    <input type="number" id="walkingTime" inputmode="numeric">
+                </div>
+
                 <div style="display:flex; gap:10px; margin-top:20px;">
                     <button id="cancelBtn" style="flex:1">中止</button>
                     <button id="saveBtn" style="flex:2">記録を保存</button>
@@ -293,14 +312,19 @@
             <div class="card">
                 <label>カテゴリー</label>
                 <select id="categorySelect" onchange="renderExercises()">
-                    <option value="push">Push</option>
-                    <option value="pull">Pull</option>
-                    <option value="legs">Legs</option>
-                    <option value="walking">Walking</option>
+                    <option value="push">Push (胸・肩・三頭)</option>
+                    <option value="pull">Pull (背中・二頭)</option>
+                    <option value="legs">Legs (脚・腹筋)</option>
+                    <option value="walking">Walking (有酸素)</option>
                 </select>
-                <input id="exerciseName" placeholder="新しい種目名">
+
+                <label>新しい種目名</label>
+                <input id="exerciseName" placeholder="例: ベンチプレス">
+
                 <button id="addExercise"
-                    style="width:100%; background:var(--primary); color:#fff; border:none; padding:15px;">追加</button>
+                    style="width:100%; background:var(--primary); color:#fff; border:none; padding:15px; margin-top:5px;">
+                    種目を追加する
+                </button>
             </div>
             <div class="card" id="exerciseList"></div>
         </section>
@@ -349,12 +373,10 @@
             if (id === 'settings') renderExercises();
         }
 
-        // 今日の表示
         function renderToday() {
             const cont = document.getElementById('todayContent');
             document.getElementById('todayDateDisplay').textContent = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
             const today = new Date().toISOString().slice(0, 10);
-
             const tx = db.transaction(['workouts', 'exercises'], 'readonly');
             tx.objectStore('workouts').getAll().onsuccess = (e1) => {
                 tx.objectStore('exercises').getAll().onsuccess = (e2) => {
@@ -366,7 +388,6 @@
             };
         }
 
-        // 履歴の表示
         function renderHistory() {
             const cont = document.getElementById('historyContent'); cont.innerHTML = '';
             const tx = db.transaction(['workouts', 'exercises'], 'readonly');
@@ -390,7 +411,7 @@
         function renderRecordCard(w, map, cont, fromTab) {
             const div = document.createElement('div'); div.className = 'record-item';
             let detail = w.category === 'walking' ? `${w.walkingTime} 分` : w.sets.map(s => `${s.weight}kg × ${s.reps}回`).join('<br>');
-            div.innerHTML = `<div style="font-weight:bold; font-size:1.1rem; color:var(--primary);">${map[w.exerciseId] || '削除された種目'}</div>
+            div.innerHTML = `<div style="font-weight:bold; font-size:1.1rem; color:var(--primary);">${map[w.exerciseId] || '種目不明'}</div>
     <div style="font-size:0.95rem; color:var(--text-main); margin:8px 0; line-height:1.4;">${detail}</div>
     <div style="margin-top:10px; display:flex; gap:10px;">
         <button onclick='editRecord(${JSON.stringify(w)})' style="padding:6px 20px; font-size:14px; flex:1;">修正</button> 
@@ -399,17 +420,14 @@
             cont.appendChild(div);
         }
 
-        // 削除処理 (カレンダー同期バグ修正済)
         function delRecord(id, fromTab) {
             if (!confirm('この記録を削除しますか？')) return;
-            const req = db.transaction('workouts', 'readwrite').objectStore('workouts').delete(id);
-            req.onsuccess = () => {
+            db.transaction('workouts', 'readwrite').objectStore('workouts').delete(id).onsuccess = () => {
                 if (fromTab === 'training') renderToday();
                 else { renderCalendar(); renderHistory(); }
             };
         }
 
-        // 保存処理 (リセットバグ修正済)
         function saveTraining() {
             const s = document.getElementById('exerciseSelect');
             if (!s.value) { alert("種目を選択してください"); return; }
@@ -486,13 +504,11 @@
             });
             const firstDay = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth(), 1).getDay();
             const lastDate = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth() + 1, 0).getDate();
-            db.transaction('workouts').objectStore('workouts').getAll().onsuccess = (e) => {
+            db.transaction('workouts', 'readonly').objectStore('workouts').getAll().onsuccess = (e) => {
                 const workoutDates = new Set(e.target.result.map(w => w.date));
                 for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement('div'));
                 for (let d = 1; d <= lastDate; d++) {
-                    const dPadded = String(d).padStart(2, '0');
-                    const mPadded = String(currentCalDate.getMonth() + 1).padStart(2, '0');
-                    const dateStr = `${currentCalDate.getFullYear()}-${mPadded}-${dPadded}`;
+                    const dateStr = `${currentCalDate.getFullYear()}-${String(currentCalDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                     const el = document.createElement('div'); el.className = 'cal-date';
                     if (workoutDates.has(dateStr)) el.classList.add('has-data');
                     if (dateStr === new Date().toISOString().slice(0, 10)) el.classList.add('today');
@@ -512,12 +528,11 @@
                 tx.objectStore('workouts').getAll().onsuccess = (e2) => {
                     const workouts = e2.target.result.sort((a, b) => a.date.localeCompare(b.date));
                     const recordedIds = [...new Set(workouts.map(w => w.exerciseId))];
-                    if (!recordedIds.length) container.innerHTML = '<div class="card" style="text-align:center; color:#999;">グラフにするデータがまだありません</div>';
                     recordedIds.forEach(id => {
                         const ex = exercises.find(x => x.id === id); if (!ex) return;
                         const exWorkouts = workouts.filter(w => w.exerciseId === id);
                         const card = document.createElement('div'); card.className = 'card';
-                        card.innerHTML = `<div style="font-weight:800; font-size:1.1rem; margin-bottom:15px; color:var(--primary);">${ex.name} (最終セット推移)</div><div style="height:250px;"><canvas id="chart-${id}"></canvas></div>`;
+                        card.innerHTML = `<div style="font-weight:800; font-size:1.1rem; margin-bottom:15px; color:var(--primary);">${ex.name}</div><div style="height:250px;"><canvas id="chart-${id}"></canvas></div>`;
                         container.appendChild(card);
                         const labels = exWorkouts.map(w => w.date.slice(5));
                         const chart = new Chart(document.getElementById(`chart-${id}`).getContext('2d'), {
@@ -529,7 +544,6 @@
                             },
                             options: {
                                 responsive: true, maintainAspectRatio: false,
-                                plugins: { legend: { position: 'bottom' } },
                                 scales: ex.category === 'walking' ? { y: { beginAtZero: true } } : {
                                     yW: { type: 'linear', position: 'left', ticks: { stepSize: 2.5 } }, yR: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, ticks: { stepSize: 1 } }
                                 }
@@ -547,11 +561,11 @@
             db.transaction('exercises', 'readonly').objectStore('exercises').getAll().onsuccess = (e) => {
                 const list = e.target.result.filter(x => x.category === cat).sort((a, b) => a.order - b.order);
                 list.forEach((ex) => {
-                    const d = document.createElement('div'); d.style.display = 'flex'; d.style.alignItems = 'center'; d.style.padding = '12px 0'; d.style.borderBottom = '1px solid #eee';
+                    const d = document.createElement('div'); d.className = 'exercise-item';
                     d.innerHTML = `<span style="flex:1; font-weight:bold;">${ex.name}</span>
         <button class="order-btn" onclick="moveEx(${ex.id}, -1)">▲</button>
         <button class="order-btn" onclick="moveEx(${ex.id}, 1)">▼</button>
-        <button onclick="delEx(${ex.id})" style="color:var(--danger); border:none; margin-left:15px; font-weight:bold;">削除</button>`;
+        <button onclick="delEx(${ex.id})" style="color:var(--danger); border:none; margin-left:15px; font-weight:bold; background:none; padding:0;">削除</button>`;
                     cont.appendChild(d);
                 });
             };
@@ -574,7 +588,7 @@
             };
         }
 
-        function delEx(id) { if (confirm('この種目をマスターから削除しますか？\n(過去の記録は残ります)')) { db.transaction('exercises', 'readwrite').objectStore('exercises').delete(id).onsuccess = () => renderExercises(); } }
+        function delEx(id) { if (confirm('種目を削除しますか？')) { db.transaction('exercises', 'readwrite').objectStore('exercises').delete(id).onsuccess = () => renderExercises(); } }
 
         document.addEventListener('DOMContentLoaded', () => {
             openDB(() => {
