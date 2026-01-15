@@ -3,8 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TrainTrack v7.6</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>TrainTrack v8.7</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -29,9 +30,10 @@
             font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
             background: var(--bg);
             color: var(--text-main);
-            font-size: 17px;
+            font-size: 16px;
             -webkit-tap-highlight-color: transparent;
             overflow-x: hidden;
+            line-height: 1.5;
         }
 
         header {
@@ -43,34 +45,29 @@
             background: var(--card);
             border-bottom: 1px solid #d1d1d6;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            padding: 0 16px;
             z-index: 200;
         }
 
         header .app-name {
-            font-weight: 900;
-            font-size: 1.2rem;
+            font-weight: 800;
+            font-size: 1.1rem;
             color: var(--primary);
         }
 
-        header .version {
-            font-size: 0.8rem;
-            color: var(--text-sub);
-        }
-
         main {
-            padding: 70px 16px 120px;
+            padding: 70px 16px 140px;
             max-width: 600px;
             margin: 0 auto;
             width: 100%;
         }
 
         h2 {
-            font-size: 1.5rem;
-            margin: 0 0 15px;
+            font-size: 1.8rem;
+            margin: 10px 0 20px 0;
             font-weight: 800;
+            color: var(--text-main);
         }
 
         .tab {
@@ -79,38 +76,80 @@
 
         .tab.active {
             display: block;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .card {
             background: var(--card);
             padding: 18px;
-            border-radius: 16px;
+            border-radius: 18px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             width: 100%;
         }
 
-        input[type="date"],
-        input[type="number"],
-        input[type="text"],
+        .bottom-tabs {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            border-top: 1px solid #d1d1d6;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 100;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 5px);
+        }
+
+        .bottom-tabs button {
+            flex: 1;
+            padding: 18px 0;
+            border: none;
+            background: none;
+            font-size: 16px;
+            color: #8e8e93;
+            font-weight: 900;
+        }
+
+        .bottom-tabs button.active {
+            color: var(--primary);
+        }
+
+        label {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-main);
+            display: block;
+            margin-top: 10px;
+        }
+
+        input,
         select {
-            -webkit-appearance: none;
-            appearance: none;
             display: block;
             width: 100%;
             padding: 14px;
-            margin: 8px 0 16px 0;
+            margin: 8px 0 18px 0;
             border: 1px solid #d1d1d6;
             border-radius: 12px;
-            font-size: 17px;
+            font-size: 16px;
             background: #fff;
-            line-height: 1.2;
         }
 
         .filter-group {
             display: flex;
             gap: 8px;
-            margin-bottom: 15px;
+            margin: 10px 0 20px;
             flex-wrap: wrap;
         }
 
@@ -122,7 +161,7 @@
             background: #fff;
             color: var(--primary);
             font-size: 14px;
-            font-weight: bold;
+            font-weight: 700;
             cursor: pointer;
         }
 
@@ -131,46 +170,18 @@
             color: #fff;
         }
 
-        .bottom-tabs {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            display: flex;
-            border-top: 1px solid #d1d1d6;
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            z-index: 100;
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-
-        .bottom-tabs button {
-            flex: 1;
-            padding: 15px 0;
-            border: none;
-            background: none;
-            font-size: 11px;
-            color: #8e8e93;
-            font-weight: bold;
-        }
-
-        .bottom-tabs button.active {
-            color: var(--primary);
-        }
-
         .fab {
             position: fixed;
             right: 20px;
-            bottom: 100px;
-            width: 65px;
-            height: 65px;
-            border-radius: 35px;
+            bottom: 120px;
+            width: 64px;
+            height: 64px;
+            border-radius: 32px;
             border: none;
             background: var(--primary);
             color: #fff;
-            font-size: 35px;
-            box-shadow: 0 8px 20px rgba(0, 123, 255, 0.4);
+            font-size: 32px;
+            box-shadow: 0 8px 16px rgba(0, 123, 255, 0.3);
             z-index: 90;
             display: none;
             align-items: center;
@@ -181,23 +192,23 @@
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             text-align: center;
+            gap: 2px;
         }
 
         .cal-date {
             padding: 10px 0;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            font-size: 14px;
+            border-radius: 8px;
         }
 
         .cal-dot {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
             background: var(--primary);
             border-radius: 50%;
-            margin-top: 4px;
+            margin: 2px auto 0;
             opacity: 0;
         }
 
@@ -209,105 +220,75 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 8px;
-            font-weight: bold;
+            margin-bottom: 10px;
+            font-weight: 700;
         }
 
         .set-row input {
             width: 85px;
-            margin-bottom: 0;
+            margin: 0;
             text-align: center;
             padding: 10px;
         }
 
-        .record-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 12px;
-            justify-content: flex-end;
+        .record-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f2f2f7;
+        }
+
+        .record-item:last-child {
+            border-bottom: none;
         }
 
         .btn-mini {
             padding: 8px 16px;
             font-size: 13px;
             border-radius: 8px;
-            border: 1px solid #d1d1d6;
-            background: #fff;
+            border: none;
+            background: #f2f2f7;
             color: var(--text-sub);
-            font-weight: 600;
+            font-weight: 700;
+            cursor: pointer;
         }
 
         .btn-mini.danger {
             color: var(--danger);
-            border-color: #f8d7da;
         }
 
         .action-group {
             display: flex;
             gap: 12px;
-            margin-top: 30px;
-            padding-bottom: 10px;
+            margin-top: 25px;
         }
 
         .btn-large {
             flex: 1;
-            height: 55px;
+            height: 56px;
             border-radius: 14px;
             font-size: 18px;
             font-weight: 800;
             border: none;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            -webkit-appearance: none;
-        }
-
-        .btn-cancel {
-            background: #e5e5ea;
-            color: #3a3a3c;
         }
 
         .btn-save {
             background: var(--primary);
-            color: #ffffff;
+            color: #fff;
             flex: 2;
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
         }
 
-        .exercise-item {
-            display: flex;
-            flex-direction: column;
-            padding: 12px 0;
-            border-bottom: 1px solid #eee;
+        .btn-save:disabled {
+            background: #ccc;
         }
 
-        .ex-row1 {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .ex-name {
-            font-weight: bold;
+        .history-date-header {
+            font-weight: 800;
             font-size: 1.1rem;
-        }
-
-        .ex-row2 {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn-outline {
-            padding: 8px 10px;
-            font-size: 13px;
-            border-radius: 6px;
-            border: 1px solid #d1d1d6;
-            background: #fff;
-            font-weight: bold;
-            flex: 1;
-            text-align: center;
+            margin: 25px 0 10px;
+            color: var(--primary);
+            padding-left: 8px;
+            border-left: 4px solid var(--primary);
+            scroll-margin-top: 80px;
         }
     </style>
 </head>
@@ -316,19 +297,18 @@
 
     <header>
         <div class="app-name">TrainTrack</div>
-        <div class="version">v7.6</div>
     </header>
 
     <main>
         <section id="training" class="tab active">
-            <h2>今日のトレーニング</h2>
-            <div id="todayDateDisplay" style="font-weight:bold; color:var(--primary); margin-bottom:15px;"></div>
+            <h2>今日</h2>
+            <div id="todayDateDisplay" style="font-weight:700; color:var(--text-sub); margin-bottom:15px;"></div>
             <div id="todayContent"></div>
         </section>
 
         <section id="trainingInput" class="tab">
             <div class="card">
-                <h2 id="inputTitle">記録を入力</h2>
+                <h2>記録入力</h2>
                 <label>日付</label>
                 <input type="date" id="inputDate">
                 <label>カテゴリー</label>
@@ -340,7 +320,6 @@
                 </div>
                 <label>種目</label>
                 <select id="exerciseSelect"></select>
-
                 <div id="strengthInputs">
                     <div class="set-row">1: <input type="number" data-field="weight" step="0.5" inputmode="decimal"> kg
                         × <input type="number" data-field="reps" inputmode="numeric"> 回</div>
@@ -351,16 +330,14 @@
                     <div class="set-row">4: <input type="number" data-field="weight" step="0.5" inputmode="decimal"> kg
                         × <input type="number" data-field="reps" inputmode="numeric"> 回</div>
                 </div>
-
                 <div id="walkingInputs" style="display:none">
                     <div class="set-row">速度: <input type="number" id="walkingSpeed" step="0.1" inputmode="decimal"> km/h
                     </div>
                     <div class="set-row">時間: <input type="number" id="walkingTime" inputmode="numeric"> 分</div>
                 </div>
-
                 <div class="action-group">
-                    <button id="cancelBtn" class="btn-large btn-cancel">中止</button>
-                    <button id="saveBtn" class="btn-large btn-save">保存する</button>
+                    <button id="cancelBtn" class="btn-large" style="background:#e5e5ea;">中止</button>
+                    <button id="saveBtn" class="btn-large btn-save">保存</button>
                 </div>
             </div>
         </section>
@@ -369,9 +346,9 @@
             <h2>履歴</h2>
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <button class="btn-outline" onclick="changeMonth(-1)">前月</button>
-                    <span id="calMonthDisplay" style="font-weight:bold;"></span>
-                    <button class="btn-outline" onclick="changeMonth(1)">次月</button>
+                    <button onclick="changeMonth(-1)" class="btn-mini">前月</button>
+                    <span id="calMonthDisplay" style="font-weight:800;"></span>
+                    <button onclick="changeMonth(1)" class="btn-mini">次月</button>
                 </div>
                 <div class="cal-grid" id="calendarGrid"></div>
             </div>
@@ -379,12 +356,12 @@
         </section>
 
         <section id="analysis" class="tab">
-            <h2>成長グラフ</h2>
+            <h2>分析</h2>
             <div id="analysisChartsContainer"></div>
         </section>
 
         <section id="settings" class="tab">
-            <h2>種目の編集</h2>
+            <h2>設定</h2>
             <div class="card">
                 <label>カテゴリー</label>
                 <select id="categorySelect" onchange="renderExercises()">
@@ -393,12 +370,12 @@
                     <option value="legs">Legs</option>
                     <option value="walking">Walking</option>
                 </select>
-                <label>新しい種目名</label>
+                <label>種目名を追加</label>
                 <input id="exerciseName" type="text" placeholder="例: ベンチプレス">
                 <button id="addExercise"
-                    style="width:100%; background:var(--primary); color:#fff; border:none; padding:15px; border-radius:12px; font-weight:bold; font-size:16px;">種目を追加する</button>
+                    style="width:100%; background:var(--primary); color:#fff; border:none; padding:15px; border-radius:12px; font-weight:800;">追加</button>
             </div>
-            <div class="card" id="exerciseList"></div>
+            <div id="exerciseList"></div>
         </section>
     </main>
 
@@ -430,18 +407,17 @@
         }
 
         function switchTab(id) {
+            window.scrollTo(0, 0);
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.bottom-tabs button').forEach(b => b.classList.remove('active'));
             const target = document.getElementById(id);
             if (target) target.classList.add('active');
             const btn = document.querySelector(`.bottom-tabs button[data-tab="${id}"]`);
             if (btn) btn.classList.add('active');
-
             document.getElementById('addTraining').style.display = (id === 'training') ? 'flex' : 'none';
-
             if (id === 'training') renderToday();
             if (id === 'history') { renderCalendar(); renderHistory(); }
-            if (id === 'analysis') renderAnalysis();
+            if (id === 'analysis') { setTimeout(renderAnalysis, 100); }
             if (id === 'settings') renderExercises();
         }
 
@@ -484,7 +460,11 @@
                     const map = {}; e2.target.result.forEach(ex => map[ex.id] = ex.name);
                     const ws = e1.target.result.filter(w => w.date === today);
                     cont.innerHTML = ws.length ? '' : '<div class="card" style="text-align:center; color:#999; padding:40px 0;">今日の記録はありません</div>';
-                    ws.forEach(w => renderRecordCard(w, map, cont, 'training'));
+                    ws.forEach(w => {
+                        const card = document.createElement('div'); card.className = 'card';
+                        renderRecordCard(w, map, card, 'training');
+                        cont.appendChild(card);
+                    });
                 };
             };
         }
@@ -492,8 +472,8 @@
         function renderRecordCard(w, map, cont, fromTab) {
             const div = document.createElement('div'); div.className = 'record-item';
             let detail = w.category === 'walking' ? `${w.walkingSpeed || 0} km/h | ${w.walkingTime} 分` : (w.sets || []).map(s => `${s.weight}kg×${s.reps}`).join(' | ');
-            div.innerHTML = `<div style="font-weight:bold; color:var(--primary); font-size:1.05rem;">${map[w.exerciseId] || '（不明な種目）'}</div>
-    <div style="font-size:0.95rem; margin:8px 0; color:#444;">${detail}</div>
+            div.innerHTML = `<div style="font-weight:800; color:var(--primary); font-size:1.1rem;">${map[w.exerciseId] || '削除された種目'}</div>
+    <div style="font-size:1rem; margin:8px 0; color:#444; font-weight:700;">${detail}</div>
     <div class="record-actions">
         <button class="btn-mini" onclick='editRecord(${JSON.stringify(w)})'>修正</button> 
         <button class="btn-mini danger" onclick='delRecord(${w.id}, "${fromTab}")'>削除</button>
@@ -509,11 +489,12 @@
         }
 
         function saveTraining() {
+            const saveBtn = document.getElementById('saveBtn');
             const s = document.getElementById('exerciseSelect');
             if (!s.value || s.value.includes('--')) { alert("種目を選択してください"); return; }
+            saveBtn.disabled = true;
             const cat = s.options[s.selectedIndex].getAttribute('data-category');
             let data = { date: document.getElementById('inputDate').value, category: cat, exerciseId: Number(s.value) };
-
             if (cat !== 'walking') {
                 let sets = [];
                 document.querySelectorAll('#strengthInputs .set-row').forEach(row => {
@@ -521,22 +502,19 @@
                     const r = row.querySelector('[data-field="reps"]').value;
                     if (w && r) sets.push({ weight: Number(w), reps: Number(r) });
                 });
-                if (!sets.length) { alert("記録を入力してください"); return; }
+                if (!sets.length) { alert("入力を確認してください"); saveBtn.disabled = false; return; }
                 data.sets = sets;
-                data.walkingSpeed = null; data.walkingTime = null;
             } else {
                 const spd = document.getElementById('walkingSpeed').value;
                 const time = document.getElementById('walkingTime').value;
-                if (!spd || !time) { alert("速度と時間を入力してください"); return; }
+                if (!spd || !time) { alert("速度と時間を入力してください"); saveBtn.disabled = false; return; }
                 data.walkingSpeed = Number(spd);
                 data.walkingTime = Number(time);
-                data.sets = [];
             }
-
             if (editingId) data.id = editingId;
-            db.transaction('workouts', 'readwrite').objectStore('workouts').put(data).onsuccess = () => {
-                editingId = null; switchTab('training');
-            };
+            const tx = db.transaction('workouts', 'readwrite');
+            tx.objectStore('workouts').put(data);
+            tx.oncomplete = () => { editingId = null; saveBtn.disabled = false; switchTab('training'); };
         }
 
         function editRecord(w) {
@@ -549,16 +527,9 @@
                 document.getElementById('walkingTime').value = w.walkingTime || '';
                 const rows = document.querySelectorAll('#strengthInputs .set-row');
                 rows.forEach(r => r.querySelectorAll('input').forEach(i => i.value = ''));
-                if (w.sets) {
-                    w.sets.forEach((s, i) => {
-                        if (rows[i]) {
-                            rows[i].querySelector('[data-field="weight"]').value = s.weight;
-                            rows[i].querySelector('[data-field="reps"]').value = s.reps;
-                        }
-                    });
-                }
+                if (w.sets) w.sets.forEach((s, i) => { if (rows[i]) { rows[i].querySelector('[data-field="weight"]').value = s.weight; rows[i].querySelector('[data-field="reps"]').value = s.reps; } });
                 switchTab('trainingInput');
-            }, 120);
+            }, 150);
         }
 
         function renderCalendar() {
@@ -566,7 +537,7 @@
             document.getElementById('calMonthDisplay').textContent = `${currentCalDate.getFullYear()}年 ${currentCalDate.getMonth() + 1}月`;
             grid.innerHTML = '';
             ['日', '月', '火', '水', '木', '金', '土'].forEach(d => {
-                const el = document.createElement('div'); el.style.fontWeight = '800'; el.style.fontSize = '12px'; el.style.padding = '5px 0'; el.textContent = d; grid.appendChild(el);
+                const el = document.createElement('div'); el.style.fontWeight = '700'; el.style.fontSize = '12px'; el.style.padding = '5px 0'; el.textContent = d; grid.appendChild(el);
             });
             const firstDay = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth(), 1).getDay();
             const lastDate = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth() + 1, 0).getDate();
@@ -577,9 +548,12 @@
                     const dateStr = `${currentCalDate.getFullYear()}-${String(currentCalDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                     const el = document.createElement('div'); el.className = 'cal-date';
                     if (workoutDates.has(dateStr)) el.classList.add('has-data');
-                    if (dateStr === new Date().toISOString().slice(0, 10)) el.style.color = 'var(--primary)';
+                    if (dateStr === new Date().toISOString().slice(0, 10)) { el.style.background = '#eef7ff'; el.style.color = 'var(--primary)'; }
                     el.innerHTML = `<span>${d}</span><div class="cal-dot"></div>`;
-                    el.onclick = () => document.getElementById(`header-${dateStr}`)?.scrollIntoView({ behavior: 'smooth' });
+                    el.onclick = () => {
+                        const target = document.getElementById(`header-${dateStr}`);
+                        if (target) target.scrollIntoView({ behavior: 'smooth' });
+                    };
                     grid.appendChild(el);
                 }
             };
@@ -608,36 +582,66 @@
         function renderAnalysis() {
             const container = document.getElementById('analysisChartsContainer');
             container.innerHTML = '';
-            activeCharts.forEach(c => { if (c) c.destroy(); }); activeCharts = [];
+            activeCharts.forEach(c => c.destroy());
+            activeCharts = [];
+
             const tx = db.transaction(['workouts', 'exercises'], 'readonly');
             tx.objectStore('exercises').getAll().onsuccess = (e1) => {
                 const exercises = e1.target.result;
                 tx.objectStore('workouts').getAll().onsuccess = (e2) => {
                     const workouts = e2.target.result.sort((a, b) => a.date.localeCompare(b.date));
                     const usedIds = [...new Set(workouts.map(w => w.exerciseId))];
+
                     usedIds.forEach(id => {
                         const ex = exercises.find(x => x.id === id); if (!ex) return;
                         const exWorkouts = workouts.filter(w => w.exerciseId === id);
                         const card = document.createElement('div'); card.className = 'card';
-                        card.innerHTML = `<div style="font-weight:800; color:var(--primary); margin-bottom:10px;">${ex.name}</div><div style="height:220px;"><canvas id="chart-${id}"></canvas></div>`;
+                        card.innerHTML = `<div style="font-weight:800; margin-bottom:10px; color:var(--primary);">${ex.name}</div><div style="height:220px;"><canvas id="chart-${id}"></canvas></div>`;
                         container.appendChild(card);
+
                         const labels = exWorkouts.map(w => w.date.slice(5));
-                        let datasets = [];
+                        let ds, scales;
+
                         if (ex.category === 'walking') {
-                            datasets = [
-                                { label: 'km/h', data: exWorkouts.map(w => w.walkingSpeed || 0), borderColor: '#28a745', tension: 0.3, pointRadius: 4 },
-                                { label: '分', data: exWorkouts.map(w => w.walkingTime || 0), borderColor: '#007aff', borderDash: [5, 5], tension: 0.3, pointRadius: 4 }
+                            ds = [
+                                { label: 'km/h', data: exWorkouts.map(w => w.walkingSpeed || 0), borderColor: '#28a745', borderWidth: 3, yAxisID: 'y', tension: 0.3, pointRadius: 5 },
+                                { label: '分', data: exWorkouts.map(w => w.walkingTime || 0), borderColor: '#007aff', borderWidth: 3, yAxisID: 'y1', borderDash: [5, 5], tension: 0.3, pointRadius: 5 }
                             ];
+                            scales = {
+                                y: { type: 'linear', position: 'left' },
+                                y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } }
+                            };
                         } else {
-                            datasets = [
-                                { label: 'kg (左)', data: exWorkouts.map(w => (w.sets && w.sets.length) ? w.sets[w.sets.length - 1].weight : 0), borderColor: '#007aff', yAxisID: 'yLeft', tension: 0.3, pointRadius: 4 },
-                                { label: '回 (右)', data: exWorkouts.map(w => (w.sets && w.sets.length) ? w.sets[w.sets.length - 1].reps : 0), borderColor: '#ff9500', yAxisID: 'yRight', borderDash: [5, 5], tension: 0.3, pointRadius: 4 }
+                            ds = [
+                                { label: 'kg', data: exWorkouts.map(w => (w.sets && w.sets.length) ? w.sets[w.sets.length - 1].weight : 0), borderColor: '#007aff', borderWidth: 3, yAxisID: 'y', tension: 0.3, pointRadius: 5 },
+                                { label: '回', data: exWorkouts.map(w => (w.sets && w.sets.length) ? w.sets[w.sets.length - 1].reps : 0), borderColor: '#ff9500', borderWidth: 3, yAxisID: 'y1', borderDash: [5, 5], tension: 0.3, pointRadius: 5 }
                             ];
+                            scales = {
+                                y: { type: 'linear', position: 'left' },
+                                y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } }
+                            };
                         }
-                        const ctx = document.getElementById(`chart-${id}`).getContext('2d');
-                        activeCharts.push(new Chart(ctx, {
-                            type: 'line', data: { labels, datasets },
-                            options: { responsive: true, maintainAspectRatio: false, scales: ex.category === 'walking' ? { y: { beginAtZero: true } } : { yLeft: { type: 'linear', position: 'left' }, yRight: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } } } }
+
+                        activeCharts.push(new Chart(document.getElementById(`chart-${id}`).getContext('2d'), {
+                            type: 'line',
+                            data: { labels, datasets: ds },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: scales,
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        labels: {
+                                            usePointStyle: true,
+                                            pointStyle: 'line',
+                                            boxWidth: 50,
+                                            font: { size: 14, weight: 'bold' },
+                                            padding: 20
+                                        }
+                                    }
+                                }
+                            }
                         }));
                     });
                 };
@@ -650,73 +654,30 @@
             db.transaction('exercises', 'readonly').objectStore('exercises').getAll().onsuccess = (e) => {
                 const list = e.target.result.filter(x => x.category === cat).sort((a, b) => a.order - b.order);
                 list.forEach((ex) => {
-                    const d = document.createElement('div'); d.className = 'exercise-item';
-                    d.innerHTML = `<div class="ex-row1"><span class="ex-name">${ex.name}</span></div>
-        <div class="ex-row2">
-          <button class="btn-outline" onclick="moveEx(${ex.id}, -1)">▲</button>
-          <button class="btn-outline" onclick="moveEx(${ex.id}, 1)">▼</button>
-          <button class="btn-outline" onclick="renameEx(${ex.id}, '${ex.name}')">編集</button>
-          <button class="btn-outline" onclick="delEx(${ex.id})" style="color:var(--danger); border-color:#f8d7da;">削除</button>
+                    const d = document.createElement('div'); d.className = 'card'; d.style.padding = '12px'; d.style.marginBottom = '10px';
+                    d.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><span style="font-weight:700;">${ex.name}</span></div>
+        <div style="display:flex; gap:5px;">
+          <button class="btn-mini" onclick="moveEx(${ex.id}, -1)">▲</button><button class="btn-mini" onclick="moveEx(${ex.id}, 1)">▼</button>
+          <button class="btn-mini" onclick="renameEx(${ex.id}, '${ex.name}')">編集</button><button class="btn-mini danger" onclick="delEx(${ex.id})">削除</button>
         </div>`;
                     cont.appendChild(d);
                 });
             };
         }
 
-        function renameEx(id, old) {
-            const n = prompt('種目名を変更しますか？', old);
-            if (n && n !== old) {
-                const tx = db.transaction('exercises', 'readwrite');
-                tx.objectStore('exercises').get(id).onsuccess = (e) => {
-                    const d = e.target.result; d.name = n; tx.objectStore('exercises').put(d).onsuccess = () => renderExercises();
-                };
-            }
-        }
-
-        function moveEx(id, dir) {
-            const tx = db.transaction('exercises', 'readwrite');
-            const s = tx.objectStore('exercises');
-            s.getAll().onsuccess = (e) => {
-                const cat = document.getElementById('categorySelect').value;
-                let list = e.target.result.filter(x => x.category === cat).sort((a, b) => a.order - b.order);
-                const i = list.findIndex(x => x.id === id);
-                if ((i === 0 && dir === -1) || (i === list.length - 1 && dir === 1)) return;
-                const target = list[i + dir];
-                const temp = list[i].order; list[i].order = target.order; target.order = temp;
-                s.put(list[i]); s.put(target); tx.oncomplete = () => renderExercises();
-            };
-        }
-
-        function delEx(id) { if (confirm('種目リストから削除しますか？')) db.transaction('exercises', 'readwrite').objectStore('exercises').delete(id).onsuccess = () => renderExercises(); }
+        function renameEx(id, old) { const n = prompt('種目名を変更しますか？', old); if (n && n !== old) { const tx = db.transaction('exercises', 'readwrite'); tx.objectStore('exercises').get(id).onsuccess = (e) => { const d = e.target.result; d.name = n; tx.objectStore('exercises').put(d).onsuccess = () => renderExercises(); }; } }
+        function moveEx(id, dir) { const tx = db.transaction('exercises', 'readwrite'); const s = tx.objectStore('exercises'); s.getAll().onsuccess = (e) => { const cat = document.getElementById('categorySelect').value; let list = e.target.result.filter(x => x.category === cat).sort((a, b) => a.order - b.order); const i = list.findIndex(x => x.id === id); if ((i === 0 && dir === -1) || (i === list.length - 1 && dir === 1)) return; const target = list[i + dir]; const temp = list[i].order; list[i].order = target.order; target.order = temp; s.put(list[i]); s.put(target); tx.oncomplete = () => renderExercises(); }; }
+        function delEx(id) { if (confirm('種目を削除しますか？（記録は消えません）')) db.transaction('exercises', 'readwrite').objectStore('exercises').delete(id).onsuccess = () => renderExercises(); }
         function changeMonth(diff) { currentCalDate.setMonth(currentCalDate.getMonth() + diff); renderCalendar(); }
 
         document.addEventListener('DOMContentLoaded', () => {
             openDB(() => {
                 switchTab('training');
-                document.getElementById('addTraining').onclick = () => {
-                    editingId = null;
-                    document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10);
-                    document.querySelectorAll('#strengthInputs input, #walkingInputs input').forEach(i => i.value = '');
-                    // 新規作成時はデフォルトでPushを表示し初期化
-                    document.querySelectorAll('#inputFilterGroup .filter-btn').forEach(b => b.classList.remove('active'));
-                    document.querySelector('#inputFilterGroup .filter-btn[data-cat="push"]').classList.add('active');
-                    filterEx('push');
-                    switchTab('trainingInput');
-                };
+                document.getElementById('addTraining').onclick = () => { editingId = null; document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10); document.querySelectorAll('#strengthInputs input, #walkingInputs input').forEach(i => i.value = ''); filterEx('push'); switchTab('trainingInput'); };
                 document.getElementById('saveBtn').onclick = saveTraining;
                 document.getElementById('cancelBtn').onclick = () => switchTab('training');
-                document.querySelectorAll('#inputFilterGroup .filter-btn').forEach(btn => {
-                    btn.onclick = function () {
-                        document.querySelectorAll('#inputFilterGroup .filter-btn').forEach(b => b.classList.remove('active'));
-                        this.classList.add('active'); filterEx(this.dataset.cat);
-                    };
-                });
-                document.getElementById('addExercise').onclick = () => {
-                    const n = document.getElementById('exerciseName'); if (!n.value) return;
-                    const tx = db.transaction('exercises', 'readwrite');
-                    tx.objectStore('exercises').add({ name: n.value, category: document.getElementById('categorySelect').value, order: Date.now() });
-                    tx.oncomplete = () => { n.value = ''; renderExercises(); };
-                };
+                document.querySelectorAll('#inputFilterGroup .filter-btn').forEach(btn => { btn.onclick = function () { document.querySelectorAll('#inputFilterGroup .filter-btn').forEach(b => b.classList.remove('active')); this.classList.add('active'); filterEx(this.dataset.cat); }; });
+                document.getElementById('addExercise').onclick = () => { const n = document.getElementById('exerciseName'); if (!n.value) return; const tx = db.transaction('exercises', 'readwrite'); tx.objectStore('exercises').add({ name: n.value, category: document.getElementById('categorySelect').value, order: Date.now() }); tx.oncomplete = () => { n.value = ''; renderExercises(); }; };
                 document.querySelectorAll('.bottom-tabs button').forEach(btn => { btn.onclick = function () { switchTab(this.getAttribute('data-tab')); }; });
                 document.getElementById('exerciseSelect').onchange = updateInputs;
             });
