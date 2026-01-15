@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TrainTrack v6</title>
+    <title>TrainTrack v6.2</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -21,10 +21,9 @@
 
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
             background: var(--bg);
             color: var(--text-main);
-            line-height: 1.6;
             font-size: 17px;
             -webkit-tap-highlight-color: transparent;
         }
@@ -38,7 +37,6 @@
         h2 {
             font-size: 1.5rem;
             margin: 0 0 15px;
-            color: #000;
             font-weight: 800;
         }
 
@@ -76,7 +74,6 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
 
-        /* ナビゲーション */
         .bottom-tabs {
             position: fixed;
             bottom: 0;
@@ -98,7 +95,6 @@
             background: none;
             font-size: 12px;
             color: #8e8e93;
-            cursor: pointer;
             font-weight: bold;
         }
 
@@ -106,7 +102,6 @@
             color: var(--primary);
         }
 
-        /* ＋ボタン（表示・非表示を制御） */
         .fab {
             position: fixed;
             right: 20px;
@@ -125,11 +120,11 @@
             justify-content: center;
         }
 
-        /* カレンダー */
         .cal-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             text-align: center;
+            margin-bottom: 10px;
         }
 
         .cal-grid div:nth-child(7n+1) {
@@ -144,6 +139,7 @@
             padding: 12px 0;
             position: relative;
             font-weight: 600;
+            cursor: pointer;
         }
 
         .cal-date.today {
@@ -168,14 +164,6 @@
             display: block;
         }
 
-        /* フォーム (16px以上) */
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }
-
         input,
         select {
             width: 100%;
@@ -183,7 +171,6 @@
             margin-bottom: 12px;
             border: 1px solid #d1d1d6;
             border-radius: 12px;
-            box-sizing: border-box;
             font-size: 17px;
             background: #fff;
         }
@@ -194,15 +181,15 @@
             gap: 8px;
             margin-bottom: 8px;
             font-weight: bold;
-            font-size: 0.9rem;
         }
 
         .set-row input {
             width: 85px;
             margin-bottom: 0;
             text-align: center;
-            padding: 8px;
-            font-size: 16px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
         }
 
         button {
@@ -210,9 +197,9 @@
             border-radius: 12px;
             border: 1px solid #d1d1d6;
             background: #fff;
-            cursor: pointer;
             font-size: 16px;
             font-weight: 600;
+            cursor: pointer;
         }
 
         #saveBtn {
@@ -227,20 +214,23 @@
             border-left: 5px solid var(--primary);
             padding-left: 12px;
             font-weight: 800;
+            scroll-margin-top: 20px;
         }
 
         .record-item {
             border-bottom: 1px solid #f0f0f0;
-            padding: 12px 0;
+            padding: 15px 0;
         }
 
-        /* 並べ替えボタン */
+        .record-item:last-child {
+            border-bottom: none;
+        }
+
         .order-btn {
-            padding: 5px 8px;
-            font-size: 12px;
-            margin-left: 4px;
-            border-color: #eee;
-            color: #666;
+            padding: 5px 10px;
+            font-size: 14px;
+            margin-left: 5px;
+            background: #f9f9f9;
         }
     </style>
 </head>
@@ -257,11 +247,10 @@
         <section id="trainingInput" class="tab">
             <div class="card">
                 <h2 id="inputTitle">記録を入力</h2>
-                <label>トレーニング日</label>
+                <label>日付</label>
                 <input type="date" id="inputDate">
-                <label>種目を選択</label>
+                <label>種目</label>
                 <select id="exerciseSelect" onchange="updateInputs()"></select>
-
                 <div id="strengthInputs">
                     <div class="set-row">1: <input type="number" data-field="weight" step="2.5" inputmode="decimal"> kg
                         × <input type="number" data-field="reps" inputmode="numeric"> 回</div>
@@ -272,13 +261,9 @@
                     <div class="set-row">4: <input type="number" data-field="weight" step="2.5" inputmode="decimal"> kg
                         × <input type="number" data-field="reps" inputmode="numeric"> 回</div>
                 </div>
-
-                <div id="walkingInputs" style="display:none">
-                    <label>歩行時間（分）</label>
-                    <input type="number" id="walkingTime" inputmode="numeric">
-                </div>
-
-                <div style="display:flex; gap:10px; margin-top:15px;">
+                <div id="walkingInputs" style="display:none"><label>歩行時間（分）</label><input type="number" id="walkingTime"
+                        inputmode="numeric"></div>
+                <div style="display:flex; gap:10px; margin-top:20px;">
                     <button id="cancelBtn" style="flex:1">中止</button>
                     <button id="saveBtn" style="flex:2">記録を保存</button>
                 </div>
@@ -304,18 +289,18 @@
         </section>
 
         <section id="settings" class="tab">
-            <h2>種目の編集・並べ替え</h2>
+            <h2>種目の編集</h2>
             <div class="card">
                 <label>カテゴリー</label>
                 <select id="categorySelect" onchange="renderExercises()">
-                    <option value="push">Push (胸・肩・三頭)</option>
-                    <option value="pull">Pull (背中・二頭)</option>
-                    <option value="legs">Legs (脚・腹筋)</option>
-                    <option value="walking">Walking (有酸素)</option>
+                    <option value="push">Push</option>
+                    <option value="pull">Pull</option>
+                    <option value="legs">Legs</option>
+                    <option value="walking">Walking</option>
                 </select>
                 <input id="exerciseName" placeholder="新しい種目名">
                 <button id="addExercise"
-                    style="width:100%; background:var(--primary); color:#fff; border:none;">種目を追加する</button>
+                    style="width:100%; background:var(--primary); color:#fff; border:none; padding:15px;">追加</button>
             </div>
             <div class="card" id="exerciseList"></div>
         </section>
@@ -335,8 +320,8 @@
         const DB_VERSION = 2;
         let db = null;
         let editingId = null;
-        let activeCharts = [];
         let currentCalDate = new Date();
+        let activeCharts = [];
 
         function openDB(cb) {
             const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -355,58 +340,80 @@
             const btn = document.querySelector(`.bottom-tabs button[data-tab="${id}"]`);
             if (btn) btn.classList.add('active');
 
-            // 1. ＋ボタンの表示制御（今日タブの時だけ表示）
             const fab = document.getElementById('addTraining');
             fab.style.display = (id === 'training') ? 'flex' : 'none';
 
-            window.scrollTo(0, 0);
             if (id === 'training') renderToday();
             if (id === 'history') { renderCalendar(); renderHistory(); }
             if (id === 'analysis') renderAnalysis();
             if (id === 'settings') renderExercises();
         }
 
-        // 設定画面の並べ替え・描画
-        function renderExercises() {
-            const cont = document.getElementById('exerciseList'); cont.innerHTML = '';
-            const cat = document.getElementById('categorySelect').value;
-            db.transaction('exercises').objectStore('exercises').getAll().onsuccess = (e) => {
-                const list = e.target.result.filter(x => x.category === cat).sort((a, b) => a.order - b.order);
-                list.forEach((ex, idx) => {
-                    const d = document.createElement('div'); d.style.display = 'flex'; d.style.alignItems = 'center'; d.style.padding = '10px 0'; d.style.borderBottom = '1px solid #eee';
-                    d.innerHTML = `<span style="flex:1; font-weight:bold;">${ex.name}</span>
-        <button class="order-btn" onclick="moveEx(${ex.id}, -1)">▲</button>
-        <button class="order-btn" onclick="moveEx(${ex.id}, 1)">▼</button>
-        <button onclick="delEx(${ex.id})" style="color:var(--danger); border:none; margin-left:10px;">消</button>`;
-                    cont.appendChild(d);
-                });
+        // 今日の表示
+        function renderToday() {
+            const cont = document.getElementById('todayContent');
+            document.getElementById('todayDateDisplay').textContent = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+            const today = new Date().toISOString().slice(0, 10);
+
+            const tx = db.transaction(['workouts', 'exercises'], 'readonly');
+            tx.objectStore('workouts').getAll().onsuccess = (e1) => {
+                tx.objectStore('exercises').getAll().onsuccess = (e2) => {
+                    const map = {}; e2.target.result.forEach(ex => map[ex.id] = ex.name);
+                    const ws = e1.target.result.filter(w => w.date === today);
+                    cont.innerHTML = ws.length ? '' : '<div class="card" style="text-align:center; color:#999;">今日の記録はありません</div>';
+                    ws.forEach(w => renderRecordCard(w, map, cont, 'training'));
+                };
             };
         }
 
-        async function moveEx(id, dir) {
-            const tx = db.transaction('exercises', 'readwrite');
-            const store = tx.objectStore('exercises');
-            store.getAll().onsuccess = (e) => {
-                const cat = document.getElementById('categorySelect').value;
-                let list = e.target.result.filter(x => x.category === cat).sort((a, b) => a.order - b.order);
-                const idx = list.findIndex(x => x.id === id);
-                if ((idx === 0 && dir === -1) || (idx === list.length - 1 && dir === 1)) return;
-                const target = list[idx + dir];
-                const tempOrder = list[idx].order;
-                list[idx].order = target.order;
-                target.order = tempOrder;
-                store.put(list[idx]);
-                store.put(target);
-                tx.oncomplete = () => renderExercises();
+        // 履歴の表示
+        function renderHistory() {
+            const cont = document.getElementById('historyContent'); cont.innerHTML = '';
+            const tx = db.transaction(['workouts', 'exercises'], 'readonly');
+            tx.objectStore('workouts').getAll().onsuccess = (e1) => {
+                tx.objectStore('exercises').getAll().onsuccess = (e2) => {
+                    const map = {}; e2.target.result.forEach(ex => map[ex.id] = ex.name);
+                    const ws = e1.target.result.sort((a, b) => b.date.localeCompare(a.date));
+                    const groups = {};
+                    ws.forEach(w => { if (!groups[w.date]) groups[w.date] = []; groups[w.date].push(w); });
+                    Object.keys(groups).forEach(d => {
+                        const header = document.createElement('div'); header.className = 'history-date-header'; header.id = `header-${d}`; header.textContent = d;
+                        cont.appendChild(header);
+                        const card = document.createElement('div'); card.className = 'card';
+                        groups[d].forEach(w => renderRecordCard(w, map, card, 'history'));
+                        cont.appendChild(card);
+                    });
+                };
             };
         }
 
-        // 保存処理（4セット対応 & バグ修正）
+        function renderRecordCard(w, map, cont, fromTab) {
+            const div = document.createElement('div'); div.className = 'record-item';
+            let detail = w.category === 'walking' ? `${w.walkingTime} 分` : w.sets.map(s => `${s.weight}kg × ${s.reps}回`).join('<br>');
+            div.innerHTML = `<div style="font-weight:bold; font-size:1.1rem; color:var(--primary);">${map[w.exerciseId] || '削除された種目'}</div>
+    <div style="font-size:0.95rem; color:var(--text-main); margin:8px 0; line-height:1.4;">${detail}</div>
+    <div style="margin-top:10px; display:flex; gap:10px;">
+        <button onclick='editRecord(${JSON.stringify(w)})' style="padding:6px 20px; font-size:14px; flex:1;">修正</button> 
+        <button onclick='delRecord(${w.id}, "${fromTab}")' style="padding:6px 20px; font-size:14px; color:var(--danger); border-color:var(--danger); flex:1;">削除</button>
+    </div>`;
+            cont.appendChild(div);
+        }
+
+        // 削除処理 (カレンダー同期バグ修正済)
+        function delRecord(id, fromTab) {
+            if (!confirm('この記録を削除しますか？')) return;
+            const req = db.transaction('workouts', 'readwrite').objectStore('workouts').delete(id);
+            req.onsuccess = () => {
+                if (fromTab === 'training') renderToday();
+                else { renderCalendar(); renderHistory(); }
+            };
+        }
+
+        // 保存処理 (リセットバグ修正済)
         function saveTraining() {
             const s = document.getElementById('exerciseSelect');
             if (!s.value) { alert("種目を選択してください"); return; }
             const cat = s.options[s.selectedIndex].getAttribute('data-category');
-
             let sets = [];
             if (cat !== 'walking') {
                 document.querySelectorAll('#strengthInputs .set-row').forEach(row => {
@@ -416,58 +423,16 @@
                 });
                 if (sets.length === 0) { alert("記録を入力してください"); return; }
             }
-
             const data = {
                 date: document.getElementById('inputDate').value,
-                category: cat,
-                exerciseId: Number(s.value),
-                sets: sets,
+                category: cat, exerciseId: Number(s.value), sets: sets,
                 walkingTime: (cat === 'walking') ? Number(document.getElementById('walkingTime').value) : null
             };
-
             if (editingId) data.id = editingId;
-
-            const tx = db.transaction('workouts', 'readwrite');
-            tx.objectStore('workouts').put(data);
-            tx.oncomplete = () => {
+            db.transaction('workouts', 'readwrite').objectStore('workouts').put(data).onsuccess = () => {
                 editingId = null;
-                clearInputs();
                 switchTab('training');
             };
-        }
-
-        function clearInputs() {
-            document.querySelectorAll('#strengthInputs input, #walkingInputs input').forEach(i => i.value = '');
-            editingId = null;
-        }
-
-        // 既存の補助関数（カレンダー、グラフ、削除等：Version 5のロジックを継承）
-        function renderToday() {
-            const cont = document.getElementById('todayContent');
-            document.getElementById('todayDateDisplay').textContent = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
-            cont.innerHTML = '';
-            const today = new Date().toISOString().slice(0, 10);
-            const tx = db.transaction(['workouts', 'exercises']);
-            tx.objectStore('workouts').getAll().onsuccess = (e1) => {
-                tx.objectStore('exercises').getAll().onsuccess = (e2) => {
-                    const map = {}; e2.target.result.forEach(ex => map[ex.id] = ex.name);
-                    const ws = e1.target.result.filter(w => w.date === today);
-                    if (ws.length === 0) cont.innerHTML = '<div class="card" style="text-align:center; color:#999;">今日の記録はまだありません</div>';
-                    ws.forEach(w => renderRecordCard(w, map, cont));
-                };
-            };
-        }
-
-        function renderRecordCard(w, map, cont) {
-            const div = document.createElement('div'); div.className = 'record-item';
-            let detail = w.category === 'walking' ? `${w.walkingTime} 分` : w.sets.map(s => `${s.weight}k×${s.reps}`).join(' | ');
-            div.innerHTML = `<div style="font-weight:bold; font-size:1.1rem;">${map[w.exerciseId] || '種目不明'}</div>
-    <div style="font-size:1rem; color:var(--text-sub); margin:5px 0;">${detail}</div>
-    <div style="margin-top:8px;">
-        <button onclick='editRecord(${JSON.stringify(w)})' style="padding:5px 15px; font-size:14px;">修正</button> 
-        <button onclick="delRecord(${w.id})" style="padding:5px 15px; font-size:14px; color:var(--danger); border-color:var(--danger);">削除</button>
-    </div>`;
-            cont.appendChild(div);
         }
 
         function editRecord(w) {
@@ -475,10 +440,10 @@
             document.getElementById('inputDate').value = w.date;
             loadExSelect(w.exerciseId);
             setTimeout(() => {
+                document.querySelectorAll('#strengthInputs input, #walkingInputs input').forEach(i => i.value = '');
                 if (w.category === 'walking') document.getElementById('walkingTime').value = w.walkingTime;
                 else {
                     const rows = document.querySelectorAll('#strengthInputs .set-row');
-                    rows.forEach(r => r.querySelectorAll('input').forEach(i => i.value = ''));
                     w.sets.forEach((s, i) => {
                         if (rows[i]) {
                             rows[i].querySelector('[data-field="weight"]').value = s.weight;
@@ -487,17 +452,19 @@
                     });
                 }
                 switchTab('trainingInput');
-            }, 200);
+            }, 100);
         }
 
         function loadExSelect(selId) {
             const s = document.getElementById('exerciseSelect'); s.innerHTML = '';
-            db.transaction('exercises').objectStore('exercises').getAll().onsuccess = (e) => {
-                e.target.result.sort((a, b) => a.order - b.order).forEach(ex => {
+            db.transaction('exercises', 'readonly').objectStore('exercises').getAll().onsuccess = (e) => {
+                const list = e.target.result.sort((a, b) => a.order - b.order);
+                list.forEach(ex => {
                     const o = document.createElement('option'); o.value = ex.id; o.textContent = ex.name; o.setAttribute('data-category', ex.category);
                     s.appendChild(o);
                 });
-                if (selId) s.value = selId; updateInputs();
+                if (selId) s.value = selId; else if (list[0]) s.value = list[0].id;
+                updateInputs();
             };
         }
 
@@ -515,16 +482,17 @@
             document.getElementById('calMonthDisplay').textContent = `${currentCalDate.getFullYear()}年 ${currentCalDate.getMonth() + 1}月`;
             grid.innerHTML = '';
             ['日', '月', '火', '水', '木', '金', '土'].forEach(d => {
-                const el = document.createElement('div'); el.style.fontWeight = 'bold'; el.style.fontSize = '12px'; el.textContent = d; grid.appendChild(el);
+                const el = document.createElement('div'); el.style.fontWeight = '800'; el.style.fontSize = '12px'; el.textContent = d; grid.appendChild(el);
             });
             const firstDay = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth(), 1).getDay();
             const lastDate = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth() + 1, 0).getDate();
-
             db.transaction('workouts').objectStore('workouts').getAll().onsuccess = (e) => {
                 const workoutDates = new Set(e.target.result.map(w => w.date));
                 for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement('div'));
                 for (let d = 1; d <= lastDate; d++) {
-                    const dateStr = `${currentCalDate.getFullYear()}-${String(currentCalDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const dPadded = String(d).padStart(2, '0');
+                    const mPadded = String(currentCalDate.getMonth() + 1).padStart(2, '0');
+                    const dateStr = `${currentCalDate.getFullYear()}-${mPadded}-${dPadded}`;
                     const el = document.createElement('div'); el.className = 'cal-date';
                     if (workoutDates.has(dateStr)) el.classList.add('has-data');
                     if (dateStr === new Date().toISOString().slice(0, 10)) el.classList.add('today');
@@ -535,51 +503,35 @@
             };
         }
 
-        function renderHistory() {
-            const cont = document.getElementById('historyContent'); cont.innerHTML = '';
-            const tx = db.transaction(['workouts', 'exercises']);
-            tx.objectStore('workouts').getAll().onsuccess = (e1) => {
-                tx.objectStore('exercises').getAll().onsuccess = (e2) => {
-                    const map = {}; e2.target.result.forEach(ex => map[ex.id] = ex.name);
-                    const ws = e1.target.result.sort((a, b) => b.date.localeCompare(a.date));
-                    const groups = {};
-                    ws.forEach(w => { if (!groups[w.date]) groups[w.date] = []; groups[w.date].push(w); });
-                    Object.keys(groups).forEach(d => {
-                        const header = document.createElement('div'); header.className = 'history-date-header'; header.id = `header-${d}`; header.textContent = d;
-                        cont.appendChild(header);
-                        const card = document.createElement('div'); card.className = 'card';
-                        groups[d].forEach(w => renderRecordCard(w, map, card));
-                        cont.appendChild(card);
-                    });
-                };
-            };
-        }
-
         function renderAnalysis() {
             const container = document.getElementById('analysisChartsContainer');
             container.innerHTML = ''; activeCharts.forEach(c => c.destroy()); activeCharts = [];
-            const tx = db.transaction(['workouts', 'exercises']);
+            const tx = db.transaction(['workouts', 'exercises'], 'readonly');
             tx.objectStore('exercises').getAll().onsuccess = (e1) => {
                 const exercises = e1.target.result;
                 tx.objectStore('workouts').getAll().onsuccess = (e2) => {
                     const workouts = e2.target.result.sort((a, b) => a.date.localeCompare(b.date));
-                    [...new Set(workouts.map(w => w.exerciseId))].forEach(id => {
+                    const recordedIds = [...new Set(workouts.map(w => w.exerciseId))];
+                    if (!recordedIds.length) container.innerHTML = '<div class="card" style="text-align:center; color:#999;">グラフにするデータがまだありません</div>';
+                    recordedIds.forEach(id => {
                         const ex = exercises.find(x => x.id === id); if (!ex) return;
                         const exWorkouts = workouts.filter(w => w.exerciseId === id);
                         const card = document.createElement('div'); card.className = 'card';
-                        card.innerHTML = `<div style="font-weight:800; font-size:1.1rem; margin-bottom:10px;">${ex.name}</div><div style="height:220px;"><canvas id="chart-${id}"></canvas></div>`;
+                        card.innerHTML = `<div style="font-weight:800; font-size:1.1rem; margin-bottom:15px; color:var(--primary);">${ex.name} (最終セット推移)</div><div style="height:250px;"><canvas id="chart-${id}"></canvas></div>`;
                         container.appendChild(card);
                         const labels = exWorkouts.map(w => w.date.slice(5));
                         const chart = new Chart(document.getElementById(`chart-${id}`).getContext('2d'), {
                             type: 'line', data: {
                                 labels, datasets: ex.category === 'walking' ?
                                     [{ label: '分', data: exWorkouts.map(w => w.walkingTime), borderColor: '#28a745', fill: true, tension: 0.3 }] :
-                                    [{ label: 'kg', data: exWorkouts.map(w => w.sets[w.sets.length - 1]?.weight || 0), borderColor: '#007aff', yAxisID: 'yW', tension: 0.3 },
-                                    { label: '回', data: exWorkouts.map(w => w.sets[w.sets.length - 1]?.reps || 0), borderColor: '#ff9500', yAxisID: 'yR', borderDash: [5, 5], tension: 0.3 }]
+                                    [{ label: 'kg', data: exWorkouts.map(w => w.sets[w.sets.length - 1]?.weight || 0), borderColor: '#007aff', yAxisID: 'yW', tension: 0.3, pointRadius: 5 },
+                                    { label: '回', data: exWorkouts.map(w => w.sets[w.sets.length - 1]?.reps || 0), borderColor: '#ff9500', yAxisID: 'yR', borderDash: [5, 5], tension: 0.3, pointRadius: 5 }]
                             },
                             options: {
-                                responsive: true, maintainAspectRatio: false, scales: ex.category === 'walking' ? {} : {
-                                    yW: { type: 'linear', position: 'left', ticks: { stepSize: 2.5 } }, yR: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } }
+                                responsive: true, maintainAspectRatio: false,
+                                plugins: { legend: { position: 'bottom' } },
+                                scales: ex.category === 'walking' ? { y: { beginAtZero: true } } : {
+                                    yW: { type: 'linear', position: 'left', ticks: { stepSize: 2.5 } }, yR: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, ticks: { stepSize: 1 } }
                                 }
                             }
                         });
@@ -589,13 +541,51 @@
             };
         }
 
-        function delRecord(id) { if (confirm('削除しますか？')) { db.transaction('workouts', 'readwrite').objectStore('workouts').delete(id).oncomplete = () => renderToday(); } }
-        function delEx(id) { if (confirm('種目を削除しますか？')) { db.transaction('exercises', 'readwrite').objectStore('exercises').delete(id).onsuccess = () => renderExercises(); } }
+        function renderExercises() {
+            const cont = document.getElementById('exerciseList'); cont.innerHTML = '';
+            const cat = document.getElementById('categorySelect').value;
+            db.transaction('exercises', 'readonly').objectStore('exercises').getAll().onsuccess = (e) => {
+                const list = e.target.result.filter(x => x.category === cat).sort((a, b) => a.order - b.order);
+                list.forEach((ex) => {
+                    const d = document.createElement('div'); d.style.display = 'flex'; d.style.alignItems = 'center'; d.style.padding = '12px 0'; d.style.borderBottom = '1px solid #eee';
+                    d.innerHTML = `<span style="flex:1; font-weight:bold;">${ex.name}</span>
+        <button class="order-btn" onclick="moveEx(${ex.id}, -1)">▲</button>
+        <button class="order-btn" onclick="moveEx(${ex.id}, 1)">▼</button>
+        <button onclick="delEx(${ex.id})" style="color:var(--danger); border:none; margin-left:15px; font-weight:bold;">削除</button>`;
+                    cont.appendChild(d);
+                });
+            };
+        }
+
+        function moveEx(id, dir) {
+            const tx = db.transaction('exercises', 'readwrite');
+            const store = tx.objectStore('exercises');
+            store.getAll().onsuccess = (e) => {
+                const cat = document.getElementById('categorySelect').value;
+                let list = e.target.result.filter(x => x.category === cat).sort((a, b) => a.order - b.order);
+                const idx = list.findIndex(x => x.id === id);
+                if ((idx === 0 && dir === -1) || (idx === list.length - 1 && dir === 1)) return;
+                const target = list[idx + dir];
+                const tempOrder = list[idx].order;
+                list[idx].order = target.order;
+                target.order = tempOrder;
+                store.put(list[idx]); store.put(target);
+                tx.oncomplete = () => renderExercises();
+            };
+        }
+
+        function delEx(id) { if (confirm('この種目をマスターから削除しますか？\n(過去の記録は残ります)')) { db.transaction('exercises', 'readwrite').objectStore('exercises').delete(id).onsuccess = () => renderExercises(); } }
 
         document.addEventListener('DOMContentLoaded', () => {
             openDB(() => {
                 switchTab('training');
-                document.getElementById('addTraining').onclick = () => { clearInputs(); document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10); loadExSelect(); switchTab('trainingInput'); };
+                document.getElementById('addTraining').onclick = () => {
+                    editingId = null;
+                    document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10);
+                    document.querySelectorAll('#strengthInputs input, #walkingInputs input').forEach(i => i.value = '');
+                    loadExSelect();
+                    switchTab('trainingInput');
+                };
                 document.getElementById('saveBtn').onclick = saveTraining;
                 document.getElementById('cancelBtn').onclick = () => switchTab('training');
                 document.getElementById('addExercise').onclick = () => {
