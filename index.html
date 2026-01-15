@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TrainTrack v6.3</title>
+    <title>TrainTrack v6.4</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -28,8 +28,36 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* ヘッダー固定表示 */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: var(--card);
+            border-bottom: 1px solid #d1d1d6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+            z-index: 200;
+        }
+
+        header .app-name {
+            font-weight: 900;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        header .version {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+        }
+
+        /* メインコンテンツの開始位置を調整 */
         main {
-            padding: 20px 16px 120px;
+            padding: 70px 16px 120px;
             max-width: 600px;
             margin: 0 auto;
         }
@@ -74,7 +102,6 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
 
-        /* 入力欄のズレを防止する設定 */
         input,
         select {
             display: block;
@@ -86,7 +113,6 @@
             font-size: 17px;
             background: #fff;
             box-sizing: border-box;
-            /* 幅の計算を正確にする */
         }
 
         .bottom-tabs {
@@ -231,7 +257,6 @@
             border-bottom: none;
         }
 
-        /* 種目リストの並べ替え行 */
         .exercise-item {
             display: flex;
             align-items: center;
@@ -250,6 +275,11 @@
 </head>
 
 <body>
+
+    <header>
+        <div class="app-name">TrainTrack</div>
+        <div class="version">v6.4</div>
+    </header>
 
     <main>
         <section id="training" class="tab active">
@@ -317,10 +347,8 @@
                     <option value="legs">Legs (脚・腹筋)</option>
                     <option value="walking">Walking (有酸素)</option>
                 </select>
-
                 <label>新しい種目名</label>
                 <input id="exerciseName" placeholder="例: ベンチプレス">
-
                 <button id="addExercise"
                     style="width:100%; background:var(--primary); color:#fff; border:none; padding:15px; margin-top:5px;">
                     種目を追加する
