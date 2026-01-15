@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>TrainTrack v9.7</title>
+    <title>TrainTrack v9.9</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -57,7 +57,7 @@
         }
 
         main {
-            padding: 70px 16px 120px;
+            padding: 70px 16px 100px;
             max-width: 600px;
             margin: 0 auto;
             width: 100%;
@@ -98,6 +98,7 @@
             width: 100%;
         }
 
+        /* --- 下部タブバー：iPhone向け最適化版 --- */
         .bottom-tabs {
             position: fixed;
             bottom: 0;
@@ -109,8 +110,9 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             z-index: 100;
+            /* 帯を細くし、セーフエリア分だけ高さを足す */
+            height: calc(50px + env(safe-area-inset-bottom));
             padding-bottom: env(safe-area-inset-bottom);
-            height: calc(55px + env(safe-area-inset-bottom));
         }
 
         .bottom-tabs button {
@@ -118,18 +120,43 @@
             padding: 0;
             border: none;
             background: none;
-            font-size: 14px;
+            font-size: 12px;
             color: #8e8e93;
             font-weight: 900;
             display: flex;
-            align-items: center;
+            align-items: flex-end;
+            /* 文字をより下部に配置 */
             justify-content: center;
-            height: 55px;
+            height: 48px;
+            /* タブ自体の高さを抑える */
+            padding-bottom: 8px;
+            /* 文字と下の境界線の距離を調整 */
         }
 
         .bottom-tabs button.active {
             color: var(--primary);
         }
+
+        .fab {
+            position: fixed;
+            right: 20px;
+            /* タブバーに被らないよう位置を微調整 */
+            bottom: calc(65px + env(safe-area-inset-bottom));
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            border: none;
+            background: var(--primary);
+            color: #fff;
+            font-size: 30px;
+            box-shadow: 0 8px 16px rgba(0, 123, 255, 0.3);
+            z-index: 90;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* -------------------------------------- */
 
         label {
             font-weight: 700;
@@ -173,24 +200,6 @@
         .filter-btn.active {
             background: var(--primary);
             color: #fff;
-        }
-
-        .fab {
-            position: fixed;
-            right: 20px;
-            bottom: calc(85px + env(safe-area-inset-bottom));
-            width: 60px;
-            height: 60px;
-            border-radius: 30px;
-            border: none;
-            background: var(--primary);
-            color: #fff;
-            font-size: 30px;
-            box-shadow: 0 8px 16px rgba(0, 123, 255, 0.3);
-            z-index: 90;
-            display: none;
-            align-items: center;
-            justify-content: center;
         }
 
         .set-row {
@@ -438,16 +447,13 @@
                 tx.objectStore('workouts').getAll().onsuccess = (e2) => {
                     const allWorkouts = e2.target.result;
                     const usedIds = [...new Set(allWorkouts.map(w => w.exerciseId))];
-
-                    // 最後にトレーニングしたID順にソート（記録がない場合はID 0扱い）
                     usedIds.sort((a, b) => {
-                        const filterA = allWorkouts.filter(w => w.exerciseId === a);
-                        const filterB = allWorkouts.filter(w => w.exerciseId === b);
-                        const latestA = filterA.length ? Math.max(...filterA.map(w => w.id)) : 0;
-                        const latestB = filterB.length ? Math.max(...filterB.map(w => w.id)) : 0;
+                        const fA = allWorkouts.filter(w => w.exerciseId === a);
+                        const fB = allWorkouts.filter(w => w.exerciseId === b);
+                        const latestA = fA.length ? Math.max(...fA.map(w => w.id)) : 0;
+                        const latestB = fB.length ? Math.max(...fB.map(w => w.id)) : 0;
                         return latestB - latestA;
                     });
-
                     usedIds.forEach(id => {
                         const ex = exercises.find(x => x.id === id); if (!ex) return;
                         const grouped = getGroupedWorkouts(allWorkouts.filter(w => w.exerciseId === id)).sort((a, b) => a.date.localeCompare(b.date));
@@ -480,12 +486,16 @@
                 let sets = [];
                 document.querySelectorAll('#strengthInputs .set-row').forEach(row => {
                     const w = row.querySelector('[data-field="weight"]').value, r = row.querySelector('[data-field="reps"]').value;
-                    if (w && r) sets.push({ weight: Number(w), reps: Number(r) });
+                    if (w !== '' && r !== '') sets.push({ weight: Number(w), reps: Number(r) });
                 });
-                if (!sets.length) return; data.sets = sets;
+                if (!sets.length) { alert('数値を入力してください'); return; }
+                data.sets = sets;
             } else {
-                data.walkingSpeed = Number(document.getElementById('walkingSpeed').value);
-                data.walkingTime = Number(document.getElementById('walkingTime').value);
+                const speed = document.getElementById('walkingSpeed').value;
+                const time = document.getElementById('walkingTime').value;
+                if (speed === '' || time === '') { alert('速度と時間を入力してください'); return; }
+                data.walkingSpeed = Number(speed);
+                data.walkingTime = Number(time);
             }
             if (editingId) data.id = editingId;
             const tx = db.transaction('workouts', 'readwrite');
