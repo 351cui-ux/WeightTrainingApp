@@ -54,8 +54,8 @@ main {
 .record-input-group label {
     width: 80px;
     font-weight: bold;
+    /* ラベルの幅を固定し、入力欄に押されないようにする */
     flex-shrink: 0;
-    /* iPhoneでのラベル幅の維持 */
 }
 
 .record-input-group input {
@@ -64,18 +64,24 @@ main {
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 16px;
-    /* バグ修正箇所: iPhone/iOS固有の幅のずれと外観をリセット */
+    /* バグ修正: iOSでの幅の計算と外観をリセット */
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
     -webkit-appearance: none;
-    /* デフォルトスタイルを無効化 */
+    margin: 0;
 }
 
-/* 日付入力欄のみ、iPhoneでの表示位置をさらに安定させる */
+/* バグ修正: iPhoneの日付入力欄内のテキストを左寄せに固定し、高さを統一する */
 .record-input-group input[type="date"] {
     background-color: #fff;
-    display: block;
+    min-height: 38px;
+}
+
+.record-input-group input[type="date"]::-webkit-date-and-time-value {
+    text-align: left;
+    /* iPhoneで文字が右に寄る現象を防止 */
+    margin: 0;
 }
 
 .btn {
