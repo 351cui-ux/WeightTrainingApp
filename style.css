@@ -54,6 +54,8 @@ main {
 .record-input-group label {
     width: 80px;
     font-weight: bold;
+    flex-shrink: 0;
+    /* iPhoneでのラベル幅の維持 */
 }
 
 .record-input-group input {
@@ -62,9 +64,18 @@ main {
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 16px;
-    /* バグ修正箇所: 日付入力欄のずれを防ぐための設定 */
+    /* バグ修正箇所: iPhone/iOS固有の幅のずれと外観をリセット */
     width: 100%;
+    min-width: 0;
     box-sizing: border-box;
+    -webkit-appearance: none;
+    /* デフォルトスタイルを無効化 */
+}
+
+/* 日付入力欄のみ、iPhoneでの表示位置をさらに安定させる */
+.record-input-group input[type="date"] {
+    background-color: #fff;
+    display: block;
 }
 
 .btn {
